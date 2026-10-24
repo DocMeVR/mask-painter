@@ -1,0 +1,322 @@
+msgid ""
+msgstr ""
+"Language: en-US\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "window.title"
+msgstr "Mask Painter"
+
+msgid "window.title.unsaved"
+msgstr "Mask Painter*"
+
+msgid "intro.text"
+msgstr "Paint where an effect shows: white shows it, black hides it. The mask follows the mesh's UV map, so it fits any texture slot of the material it is for."
+
+msgid "section.mesh"
+msgstr "Mesh"
+
+msgid "section.paint"
+msgstr "Paint"
+
+msgid "section.save"
+msgstr "Save"
+
+msgid "field.mesh"
+msgstr "Mesh"
+
+msgid "field.mesh.tip"
+msgstr "The mesh to paint on, from your avatar in the scene."
+
+msgid "field.material"
+msgstr "Material"
+
+msgid "field.material.tip"
+msgstr "The material the mask is for: only the part of the mesh it covers is painted."
+
+msgid "field.uv"
+msgstr "UV map"
+
+msgid "field.uv.tip"
+msgstr "Which of the mesh's UV maps the mask follows: most Poiyomi masks use UV0."
+
+msgid "field.start"
+msgstr "Start with"
+
+msgid "field.start.tip"
+msgstr "What the new mask is before you paint on it."
+
+msgid "start.black"
+msgstr "Black"
+
+msgid "start.white"
+msgstr "White"
+
+msgid "start.texture"
+msgstr "A texture"
+
+msgid "field.texture"
+msgstr "Texture"
+
+msgid "field.texture.tip"
+msgstr "An existing mask to keep painting on: its size is kept and the file itself is never changed."
+
+msgid "field.size"
+msgstr "Size"
+
+msgid "field.size.tip"
+msgstr "How many pixels wide and high the new mask is."
+
+msgid "button.start"
+msgstr "Start painting"
+
+msgid "button.startover"
+msgstr "Start over"
+
+msgid "button.start.tip"
+msgstr "Starts a new mask with these settings; the mesh and its materials stay as they are."
+
+msgid "material.empty"
+msgstr "(empty)"
+
+msgid "mesh.pick"
+msgstr "Pick a mesh from your avatar in the scene, or select it before opening this window."
+
+msgid "mesh.none"
+msgstr "This object has no mesh to paint on."
+
+msgid "mesh.nouv"
+msgstr "This mesh has nothing on {0}: pick another UV map."
+
+msgid "mesh.toolarge"
+msgstr "This texture is larger than {0} pixels: pick a smaller one."
+
+msgid "mesh.gone"
+msgstr "The mesh you were painting on is gone: Ctrl+Z brings it back. You can still save the mask."
+
+msgid "mesh.describe.one"
+msgstr "{0}: 1 piece on {2}, {3} x {4} pixels."
+
+msgid "mesh.describe.many"
+msgstr "{0}: {1} pieces on {2}, {3} x {4} pixels."
+
+msgid "row.tool"
+msgstr "Click does"
+
+msgid "row.tool.tip"
+msgstr "What a click in the Scene view does while this window is open."
+
+msgid "tool.off"
+msgstr "Off"
+
+msgid "tool.off.tip"
+msgstr "Clicks in the Scene view select objects as usual."
+
+msgid "tool.fill"
+msgstr "Fill pieces"
+
+msgid "tool.fill.tip"
+msgstr "A click fills the whole piece of the model under the mouse."
+
+msgid "tool.brush"
+msgstr "Brush"
+
+msgid "tool.brush.tip"
+msgstr "Drag on the model to paint with a round brush."
+
+msgid "field.brush"
+msgstr "Brush size (cm)"
+
+msgid "field.brush.tip"
+msgstr "How wide the brush is on the model, in centimetres: the [ and ] keys change it too."
+
+msgid "field.softness"
+msgstr "Softness"
+
+msgid "field.softness.tip"
+msgstr "How gently the brush fades at its edge, from a hard edge at 0 to fully soft at 1."
+
+msgid "field.strength"
+msgstr "Strength"
+
+msgid "field.strength.tip"
+msgstr "How far one stroke moves the mask toward white or black: below 1, strokes build it up."
+
+msgid "field.mirror"
+msgstr "Mirror"
+
+msgid "field.mirror.tip"
+msgstr "Paints and fills the same on the other side of the avatar, left and right."
+
+msgid "hint.fill"
+msgstr "Click a piece of the model in the Scene view to fill it white. Shift+click fills it black."
+
+msgid "hint.brush"
+msgstr "Drag on the model in the Scene view to paint white. Hold Shift to paint black. Alt+drag still turns the view."
+
+msgid "hint.off"
+msgstr "Pick Fill pieces or Brush to paint in the Scene view."
+
+msgid "hint.clothes"
+msgstr "To paint under clothes, hide them with the eye icon in the Hierarchy: it hides them only in the Scene view."
+
+msgid "row.whole"
+msgstr "Whole mask"
+
+msgid "row.whole.tip"
+msgstr "Changes the whole mask at once; Ctrl+Z takes it back."
+
+msgid "button.allblack"
+msgstr "All black"
+
+msgid "button.allblack.tip"
+msgstr "Makes the whole mask black."
+
+msgid "button.allwhite"
+msgstr "All white"
+
+msgid "button.allwhite.tip"
+msgstr "Makes the whole mask white."
+
+msgid "button.invert"
+msgstr "Invert"
+
+msgid "button.invert.tip"
+msgstr "Swaps black and white everywhere."
+
+msgid "field.show"
+msgstr "Show"
+
+msgid "field.show.tip"
+msgstr "How the Scene view shows the mask on the model: green over its colours, the mask's own greys, or nothing. Your materials do not change."
+
+msgid "show.overlay"
+msgstr "Overlay"
+
+msgid "show.mask"
+msgstr "Mask only"
+
+msgid "show.nothing"
+msgstr "Nothing"
+
+msgid "saved.none"
+msgstr "Not saved yet."
+
+msgid "saved.unsaved"
+msgstr "Changes not saved yet: {0}"
+
+msgid "saved.saved"
+msgstr "Saved: {0}"
+
+msgid "row.file"
+msgstr "Mask file"
+
+msgid "row.file.tip"
+msgstr "Saves the mask as a PNG laid out like the mesh's UV map."
+
+msgid "button.save"
+msgstr "Save"
+
+msgid "button.save.tip"
+msgstr "Writes the changes into the PNG it was saved to last."
+
+msgid "button.saveas"
+msgstr "Save as..."
+
+msgid "button.saveas.tip"
+msgstr "Saves the mask as a new PNG in your project."
+
+msgid "row.slot"
+msgstr "Slot"
+
+msgid "row.slot.tip"
+msgstr "Which texture slot of the material gets the mask."
+
+msgid "button.pickslot"
+msgstr "Pick a slot"
+
+msgid "button.pickslot.tip"
+msgstr "Opens a searchable list of the material's texture slots, mask slots first."
+
+msgid "button.pickslot.picked"
+msgstr "{0}: click to pick another slot."
+
+msgid "note.embedded"
+msgstr "This material is inside the model file and cannot keep changes: extract it to its own file first."
+
+msgid "note.noslots"
+msgstr "This material has no texture slot."
+
+msgid "note.lockedempty"
+msgstr "This material is locked and this slot was empty when it was locked, so Poiyomi may ignore the mask until you unlock the material and lock it again."
+
+msgid "note.locked"
+msgstr "This material is locked, so Poiyomi hides the slots of features that are off: unlock it to see them all."
+
+msgid "button.put"
+msgstr "Put into material"
+
+msgid "button.put.tip"
+msgstr "Saves the mask if needed and puts it into the chosen slot; Ctrl+Z takes it out again."
+
+msgid "status.saved"
+msgstr "Saved {0}."
+
+msgid "status.put"
+msgstr "Put into {0}: {1}."
+
+msgid "dialog.save.title"
+msgstr "Save mask"
+
+msgid "dialog.save.message"
+msgstr "Where to save the mask in your project."
+
+msgid "dialog.new.title"
+msgstr "Start a new mask?"
+
+msgid "dialog.new.message"
+msgstr "The mask you are painting has changes that are not saved. Start a new one anyway?"
+
+msgid "dialog.new.ok"
+msgstr "Start new"
+
+msgid "dialog.cancel"
+msgstr "Cancel"
+
+msgid "quit.message"
+msgstr "The mask you painted on {0} has changes that are not saved. Save them before quitting?"
+
+msgid "quit.mesh"
+msgstr "your mesh"
+
+msgid "quit.save"
+msgstr "Save"
+
+msgid "quit.discard"
+msgstr "Quit without saving"
+
+msgid "picker.title"
+msgstr "Texture slots"
+
+msgid "undo.fillpiece"
+msgstr "Fill mask piece"
+
+msgid "undo.fillwhite"
+msgstr "Fill mask white"
+
+msgid "undo.fillblack"
+msgstr "Fill mask black"
+
+msgid "undo.invert"
+msgstr "Invert mask"
+
+msgid "undo.paint"
+msgstr "Paint mask"
+
+msgid "undo.put"
+msgstr "Put mask into {0}"
+
+msgid "field.language"
+msgstr "Language"
+
+msgid "field.language.tip"
+msgstr "The language of this window. Modular Avatar and other tools that use NDMF share this choice."

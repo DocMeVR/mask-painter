@@ -1,0 +1,101 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release to rebuild the files for (for example 1.3.0). Empty: only run release-please."
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          config-file: .github/release-please-config.json
+          manifest-file: .github/.release-please-manifest.json
+
+  # Runs once release-please has merged a release PR and created the release: builds the package
+  # files and attaches them, which is what the VCC listing reads.
+  build:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' || inputs.tag != '' }}
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.tag || needs.release-please.outputs.tag_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - name: Read package.json
+        id: pkg
+        run: |
+          echo "name=$(jq -r .name package.json)" >> $GITHUB_OUTPUT
+          echo "version=$(jq -r .version package.json)" >> $GITHUB_OUTPUT
+
+      # Only what creators need to use the tool: no README, changelog or repository files (the README
+      # and changelog are linked from package.json). The license stays. The package sits under Packages/<name>
+      # so the unitypackage imports into the Packages folder.
+      - name: Stage The Package
+        run: |
+          stage="$RUNNER_TEMP/stage/Packages/${{ steps.pkg.outputs.name }}"
+          mkdir -p "$stage"
+          rsync -a --exclude '.git*' --exclude 'Tests' --exclude 'Tests.meta' --exclude 'Docs~' \
+            --exclude '/README.md' --exclude '/README.md.meta' --exclude '/CHANGELOG.md' --exclude '/CHANGELOG.md.meta' \
+            ./ "$stage/"
+
+      # Downloads carry only the code: the staged copy loses its comments before the zip and the unitypackage are made.
+      - name: Strip Comments
+        run: python3 .github/strip_comments.py "$RUNNER_TEMP/stage/Packages/${{ steps.pkg.outputs.name }}"
+
+      - name: Create Package Zip
+        run: |
+          cd "$RUNNER_TEMP/stage/Packages/${{ steps.pkg.outputs.name }}"
+          zip -r -q "$GITHUB_WORKSPACE/${{ steps.pkg.outputs.name }}-${{ steps.pkg.outputs.version }}.zip" .
+
+      - name: Track Package Meta Files
+        run: |
+          cd "$RUNNER_TEMP/stage"
+          find "Packages/${{ steps.pkg.outputs.name }}" -name '*.meta' > metaList
+
+      - name: Create UnityPackage
+        uses: pCYSl5EDgo/create-unitypackage@v1.2.3
+        with:
+          working-folder: ${{ runner.temp }}/stage
+          package-path: ${{ steps.pkg.outputs.name }}-${{ steps.pkg.outputs.version }}.unitypackage
+          include-files: metaList
+
+      - name: Attach Files To Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "$TAG" \
+            "${{ steps.pkg.outputs.name }}-${{ steps.pkg.outputs.version }}.zip" \
+            "$RUNNER_TEMP/stage/${{ steps.pkg.outputs.name }}-${{ steps.pkg.outputs.version }}.unitypackage" \
+            package.json --clobber
+
+      # With a token that may run workflows on DocMeVR/vpm the listing updates right away; without
+      # one its hourly schedule picks the release up.
+      - name: Rebuild The VCC Listing
+        env:
+          TOKEN: ${{ secrets.VPM_LISTING_TOKEN }}
+        run: |
+          if [ -n "$TOKEN" ]; then
+            curl -sS -X POST -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" \
+              https://api.github.com/repos/DocMeVR/vpm/dispatches -d '{"event_type":"package-released"}'
+          else
+            echo "VPM_LISTING_TOKEN is not set: the listing rebuilds on its hourly schedule."
+          fi

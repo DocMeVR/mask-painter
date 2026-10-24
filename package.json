@@ -1,0 +1,16 @@
+{
+  "name": "com.docme.mask-painter",
+  "displayName": "DocMe Mask Painter",
+  "version": "1.0.0",
+  "unity": "2022.3",
+  "description": "Paint black and white masks for your avatar right on the model in the Scene view, laid out on its UV map, and put them into any material slot.",
+  "author": {
+    "name": "DocMe",
+    "email": "docme2nd@gmail.com"
+  },
+  "license": "MIT",
+  "documentationUrl": "https://github.com/DocMeVR/mask-painter#readme",
+  "changelogUrl": "https://github.com/DocMeVR/mask-painter/blob/main/CHANGELOG.md",
+  "keywords": ["vrchat", "avatar", "docme", "mask", "texture", "paint"],
+  "vpmDependencies": {}
+}

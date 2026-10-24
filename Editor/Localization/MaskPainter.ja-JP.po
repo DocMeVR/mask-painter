@@ -1,0 +1,429 @@
+msgid ""
+msgstr ""
+"Language: ja-JP\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"X-DocMe-Reviewed: no\n"
+
+#. en: Mask Painter
+msgid "window.title"
+msgstr "Mask Painter"
+
+#. en: Mask Painter*
+msgid "window.title.unsaved"
+msgstr "Mask Painter*"
+
+#. en: Paint where an effect shows: white shows it, black hides it. The mask follows the mesh's UV map, so it fits any texture slot of the material it is for.
+msgid "intro.text"
+msgstr "エフェクトを表示したい場所を塗ります。白は表示、黒は非表示です。マスクはメッシュのUVマップに沿うので、対象マテリアルのどのテクスチャスロットにも使えます。"
+
+#. en: Mesh
+msgid "section.mesh"
+msgstr "メッシュ"
+
+#. en: Paint
+msgid "section.paint"
+msgstr "ペイント"
+
+#. en: Save
+msgid "section.save"
+msgstr "保存"
+
+#. en: Mesh
+msgid "field.mesh"
+msgstr "メッシュ"
+
+#. en: The mesh to paint on, from your avatar in the scene.
+msgid "field.mesh.tip"
+msgstr "塗る対象のメッシュです。シーン内のアバターから選びます。"
+
+#. en: Material
+msgid "field.material"
+msgstr "マテリアル"
+
+#. en: The material the mask is for: only the part of the mesh it covers is painted.
+msgid "field.material.tip"
+msgstr "マスクを使うマテリアルです。メッシュのうち、そのマテリアルが使われている部分だけを塗ります。"
+
+#. en: UV map
+msgid "field.uv"
+msgstr "UVマップ"
+
+#. en: Which of the mesh's UV maps the mask follows: most Poiyomi masks use UV0.
+msgid "field.uv.tip"
+msgstr "マスクが沿うUVマップです。Poiyomiのマスクはほとんどの場合UV0を使います。"
+
+#. en: Start with
+msgid "field.start"
+msgstr "開始時の内容"
+
+#. en: What the new mask is before you paint on it.
+msgid "field.start.tip"
+msgstr "塗り始める前の、新しいマスクの状態です。"
+
+#. en: Black
+msgid "start.black"
+msgstr "黒"
+
+#. en: White
+msgid "start.white"
+msgstr "白"
+
+#. en: A texture
+msgid "start.texture"
+msgstr "テクスチャ"
+
+#. en: Texture
+msgid "field.texture"
+msgstr "テクスチャ"
+
+#. en: An existing mask to keep painting on: its size is kept and the file itself is never changed.
+msgid "field.texture.tip"
+msgstr "続きを塗りたい既存のマスクです。サイズはそのまま引き継がれ、元のファイルは変更されません。"
+
+#. en: Size
+msgid "field.size"
+msgstr "サイズ"
+
+#. en: How many pixels wide and high the new mask is.
+msgid "field.size.tip"
+msgstr "新しいマスクの縦と横のピクセル数です。"
+
+#. en: Start painting
+msgid "button.start"
+msgstr "ペイントを始める"
+
+#. en: Start over
+msgid "button.startover"
+msgstr "最初からやり直す"
+
+#. en: Starts a new mask with these settings; the mesh and its materials stay as they are.
+msgid "button.start.tip"
+msgstr "この設定で新しいマスクを作ります。メッシュとマテリアルは変わりません。"
+
+#. en: (empty)
+msgid "material.empty"
+msgstr "(なし)"
+
+#. en: Pick a mesh from your avatar in the scene, or select it before opening this window.
+msgid "mesh.pick"
+msgstr "シーン内のアバターからメッシュを選ぶか、このウィンドウを開く前にメッシュを選択してください。"
+
+#. en: This object has no mesh to paint on.
+msgid "mesh.none"
+msgstr "このオブジェクトには塗れるメッシュがありません。"
+
+#. en: This mesh has nothing on {0}: pick another UV map.
+msgid "mesh.nouv"
+msgstr "このメッシュには{0}のデータがありません。別のUVマップを選んでください。"
+
+#. en: This texture is larger than {0} pixels: pick a smaller one.
+msgid "mesh.toolarge"
+msgstr "このテクスチャは{0}ピクセルより大きいため使えません。小さいものを選んでください。"
+
+#. en: The mesh you were painting on is gone: Ctrl+Z brings it back. You can still save the mask.
+msgid "mesh.gone"
+msgstr "塗っていたメッシュが見つかりません。Ctrl+Zで元に戻せます。マスクの保存はできます。"
+
+#. en: {0}: 1 piece on {2}, {3} x {4} pixels.
+msgid "mesh.describe.one"
+msgstr "{0}: {2}に1個のパーツ、{3} x {4}ピクセル。"
+
+#. en: {0}: {1} pieces on {2}, {3} x {4} pixels.
+msgid "mesh.describe.many"
+msgstr "{0}: {2}に{1}個のパーツ、{3} x {4}ピクセル。"
+
+#. en: Click does
+msgid "row.tool"
+msgstr "クリック操作"
+
+#. en: What a click in the Scene view does while this window is open.
+msgid "row.tool.tip"
+msgstr "このウィンドウを開いている間、シーンビューでクリックしたときの動作です。"
+
+#. en: Off
+msgid "tool.off"
+msgstr "オフ"
+
+#. en: Clicks in the Scene view select objects as usual.
+msgid "tool.off.tip"
+msgstr "シーンビューのクリックは、いつもどおりオブジェクトを選択します。"
+
+#. en: Fill pieces
+msgid "tool.fill"
+msgstr "パーツ塗り"
+
+#. en: A click fills the whole piece of the model under the mouse.
+msgid "tool.fill.tip"
+msgstr "クリックすると、マウス下にあるモデルのパーツ全体を塗ります。"
+
+#. en: Brush
+msgid "tool.brush"
+msgstr "ブラシ"
+
+#. en: Drag on the model to paint with a round brush.
+msgid "tool.brush.tip"
+msgstr "モデル上をドラッグして、丸いブラシで塗ります。"
+
+#. en: Brush size (cm)
+msgid "field.brush"
+msgstr "ブラシ幅 (cm)"
+
+#. en: How wide the brush is on the model, in centimetres: the [ and ] keys change it too.
+msgid "field.brush.tip"
+msgstr "モデル上のブラシの幅をセンチメートルで指定します。[ キーと ] キーでも変えられます。"
+
+#. en: Softness
+msgid "field.softness"
+msgstr "ぼかし"
+
+#. en: How gently the brush fades at its edge, from a hard edge at 0 to fully soft at 1.
+msgid "field.softness.tip"
+msgstr "ブラシの縁のぼけ具合です。0で縁がはっきり、1で完全にやわらかくなります。"
+
+#. en: Strength
+msgid "field.strength"
+msgstr "強さ"
+
+#. en: How far one stroke moves the mask toward white or black: below 1, strokes build it up.
+msgid "field.strength.tip"
+msgstr "1回のストロークでマスクを白または黒へ近づける度合いです。1より小さいと、重ね塗りで少しずつ濃くなります。"
+
+#. en: Mirror
+msgid "field.mirror"
+msgstr "ミラー"
+
+#. en: Paints and fills the same on the other side of the avatar, left and right.
+msgid "field.mirror.tip"
+msgstr "アバターの左右反対側にも同じように塗ります。"
+
+#. en: Click a piece of the model in the Scene view to fill it white. Shift+click fills it black.
+msgid "hint.fill"
+msgstr "シーンビューでモデルのパーツをクリックすると白で塗りつぶします。Shift+クリックで黒になります。"
+
+#. en: Drag on the model in the Scene view to paint white. Hold Shift to paint black. Alt+drag still turns the view.
+msgid "hint.brush"
+msgstr "シーンビューでモデル上をドラッグすると白で塗ります。Shiftを押すと黒で塗ります。Alt+ドラッグで視点を回せます。"
+
+#. en: Pick Fill pieces or Brush to paint in the Scene view.
+msgid "hint.off"
+msgstr "シーンビューで塗るには、パーツ塗りかブラシを選んでください。"
+
+#. en: To paint under clothes, hide them with the eye icon in the Hierarchy: it hides them only in the Scene view.
+msgid "hint.clothes"
+msgstr "服の下を塗るには、ヒエラルキーの目のアイコンで服を隠します。隠れるのはシーンビューだけです。"
+
+#. en: Whole mask
+msgid "row.whole"
+msgstr "マスク全体"
+
+#. en: Changes the whole mask at once; Ctrl+Z takes it back.
+msgid "row.whole.tip"
+msgstr "マスク全体を一度に変えます。Ctrl+Zで元に戻せます。"
+
+#. en: All black
+msgid "button.allblack"
+msgstr "すべて黒"
+
+#. en: Makes the whole mask black.
+msgid "button.allblack.tip"
+msgstr "マスク全体を黒にします。"
+
+#. en: All white
+msgid "button.allwhite"
+msgstr "すべて白"
+
+#. en: Makes the whole mask white.
+msgid "button.allwhite.tip"
+msgstr "マスク全体を白にします。"
+
+#. en: Invert
+msgid "button.invert"
+msgstr "反転"
+
+#. en: Swaps black and white everywhere.
+msgid "button.invert.tip"
+msgstr "白と黒をすべて入れ替えます。"
+
+#. en: Show
+msgid "field.show"
+msgstr "表示"
+
+#. en: How the Scene view shows the mask on the model: green over its colours, the mask's own greys, or nothing. Your materials do not change.
+msgid "field.show.tip"
+msgstr "シーンビューでマスクをどう見せるかを選びます。元の色の上に緑で重ねる、マスクそのものの灰色、または表示なしです。マテリアルは変わりません。"
+
+#. en: Overlay
+msgid "show.overlay"
+msgstr "重ねて表示"
+
+#. en: Mask only
+msgid "show.mask"
+msgstr "マスクのみ"
+
+#. en: Nothing
+msgid "show.nothing"
+msgstr "表示しない"
+
+#. en: Not saved yet.
+msgid "saved.none"
+msgstr "まだ保存されていません。"
+
+#. en: Changes not saved yet: {0}
+msgid "saved.unsaved"
+msgstr "未保存の変更があります: {0}"
+
+#. en: Saved: {0}
+msgid "saved.saved"
+msgstr "保存済み: {0}"
+
+#. en: Mask file
+msgid "row.file"
+msgstr "マスクファイル"
+
+#. en: Saves the mask as a PNG laid out like the mesh's UV map.
+msgid "row.file.tip"
+msgstr "メッシュのUVマップと同じ配置のPNGとして、マスクを保存します。"
+
+#. en: Save
+msgid "button.save"
+msgstr "保存"
+
+#. en: Writes the changes into the PNG it was saved to last.
+msgid "button.save.tip"
+msgstr "最後に保存したPNGに変更を書き込みます。"
+
+#. en: Save as...
+msgid "button.saveas"
+msgstr "名前を付けて保存..."
+
+#. en: Saves the mask as a new PNG in your project.
+msgid "button.saveas.tip"
+msgstr "マスクをプロジェクト内の新しいPNGとして保存します。"
+
+#. en: Slot
+msgid "row.slot"
+msgstr "スロット"
+
+#. en: Which texture slot of the material gets the mask.
+msgid "row.slot.tip"
+msgstr "マテリアルのどのテクスチャスロットにマスクを入れるかを選びます。"
+
+#. en: Pick a slot
+msgid "button.pickslot"
+msgstr "スロットを選ぶ"
+
+#. en: Opens a searchable list of the material's texture slots, mask slots first.
+msgid "button.pickslot.tip"
+msgstr "マテリアルのテクスチャスロットを検索できる一覧を開きます。マスク用のスロットが先に並びます。"
+
+#. en: {0}: click to pick another slot.
+msgid "button.pickslot.picked"
+msgstr "{0}: クリックして別のスロットを選べます。"
+
+#. en: This material is inside the model file and cannot keep changes: extract it to its own file first.
+msgid "note.embedded"
+msgstr "このマテリアルはモデルファイルの中にあるため、変更を保存できません。先にマテリアルを個別のファイルに取り出してください。"
+
+#. en: This material has no texture slot.
+msgid "note.noslots"
+msgstr "このマテリアルにはテクスチャスロットがありません。"
+
+#. en: This material is locked and this slot was empty when it was locked, so Poiyomi may ignore the mask until you unlock the material and lock it again.
+msgid "note.lockedempty"
+msgstr "このマテリアルはロックされていて、ロックしたときこのスロットは空でした。マテリアルのロックを解除してもう一度ロックするまで、Poiyomiがマスクを無視することがあります。"
+
+#. en: This material is locked, so Poiyomi hides the slots of features that are off: unlock it to see them all.
+msgid "note.locked"
+msgstr "このマテリアルはロックされているため、Poiyomiはオフの機能のスロットを隠しています。すべて見るにはロックを解除してください。"
+
+#. en: Put into material
+msgid "button.put"
+msgstr "マテリアルに入れる"
+
+#. en: Saves the mask if needed and puts it into the chosen slot; Ctrl+Z takes it out again.
+msgid "button.put.tip"
+msgstr "必要ならマスクを保存し、選んだスロットに入れます。Ctrl+Zで取り出せます。"
+
+#. en: Saved {0}.
+msgid "status.saved"
+msgstr "{0}に保存しました。"
+
+#. en: Put into {0}: {1}.
+msgid "status.put"
+msgstr "{0}に入れました: {1}。"
+
+#. en: Save mask
+msgid "dialog.save.title"
+msgstr "マスクを保存"
+
+#. en: Where to save the mask in your project.
+msgid "dialog.save.message"
+msgstr "マスクをプロジェクト内のどこに保存するかを選んでください。"
+
+#. en: Start a new mask?
+msgid "dialog.new.title"
+msgstr "新しいマスクを始めますか?"
+
+#. en: The mask you are painting has changes that are not saved. Start a new one anyway?
+msgid "dialog.new.message"
+msgstr "いま塗っているマスクに未保存の変更があります。それでも新しく始めますか?"
+
+#. en: Start new
+msgid "dialog.new.ok"
+msgstr "新しく始める"
+
+#. en: Cancel
+msgid "dialog.cancel"
+msgstr "キャンセル"
+
+#. en: The mask you painted on {0} has changes that are not saved. Save them before quitting?
+msgid "quit.message"
+msgstr "{0}に塗ったマスクに未保存の変更があります。終了する前に保存しますか?"
+
+#. en: your mesh
+msgid "quit.mesh"
+msgstr "メッシュ"
+
+#. en: Save
+msgid "quit.save"
+msgstr "保存"
+
+#. en: Quit without saving
+msgid "quit.discard"
+msgstr "保存せずに終了"
+
+#. en: Texture slots
+msgid "picker.title"
+msgstr "テクスチャスロット"
+
+#. en: Fill mask piece
+msgid "undo.fillpiece"
+msgstr "マスクのパーツを塗る"
+
+#. en: Fill mask white
+msgid "undo.fillwhite"
+msgstr "マスクを白で塗る"
+
+#. en: Fill mask black
+msgid "undo.fillblack"
+msgstr "マスクを黒で塗る"
+
+#. en: Invert mask
+msgid "undo.invert"
+msgstr "マスクを反転"
+
+#. en: Paint mask
+msgid "undo.paint"
+msgstr "マスクを塗る"
+
+#. en: Put mask into {0}
+msgid "undo.put"
+msgstr "マスクを{0}に入れる"
+
+#. en: Language
+msgid "field.language"
+msgstr "言語"
+
+#. en: The language of this window. Modular Avatar and other tools that use NDMF share this choice.
+msgid "field.language.tip"
+msgstr "このウィンドウの表示言語です。Modular Avatar など NDMF を使うツールと同じ設定を共有します。"

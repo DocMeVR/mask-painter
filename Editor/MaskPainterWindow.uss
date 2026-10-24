@@ -1,0 +1,88 @@
+.docme-mp {
+    --docme-accent: rgb(63, 201, 168);
+    padding: 4px 6px 8px 6px;
+}
+
+.docme-mp__intro {
+    white-space: normal;
+    margin-bottom: 4px;
+}
+
+.docme-mp__section {
+    margin-top: 8px;
+    margin-bottom: 2px;
+    padding-bottom: 2px;
+    -unity-font-style: bold;
+    border-bottom-width: 1px;
+    border-bottom-color: var(--docme-accent);
+}
+
+.docme-mp .unity-base-field {
+    margin-left: 0;
+    margin-right: 0;
+    align-items: center;
+}
+
+.docme-mp .unity-base-field > .unity-base-field__label {
+    min-width: 112px;
+    width: 112px;
+    max-width: 112px;
+}
+
+.docme-mp .docme-mp__row {
+    flex-direction: row;
+    align-items: flex-start;
+}
+
+.docme-mp__row > .unity-base-field__label {
+    padding-top: 2px;
+}
+
+.docme-mp__row-box {
+    flex-direction: row;
+    flex-wrap: wrap;
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+
+.docme-mp__button {
+    margin-left: 0;
+    margin-right: 4px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+}
+
+.docme-mp__action {
+    align-self: flex-start;
+    margin-top: 4px;
+}
+
+.docme-mp__choice--on {
+    background-color: var(--docme-accent);
+    border-color: var(--docme-accent);
+    color: rgb(16, 16, 16);
+}
+
+.docme-mp__hint {
+    white-space: normal;
+    margin-top: 2px;
+    margin-bottom: 2px;
+    opacity: 0.8;
+}
+
+.docme-mp__status {
+    margin-top: 8px;
+    opacity: 1;
+}
+
+.docme-mp .unity-help-box {
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 4px;
+}
+
+.docme-mp__picker {
+    flex-grow: 1;
+    flex-shrink: 1;
+    -unity-text-align: middle-left;
+}
