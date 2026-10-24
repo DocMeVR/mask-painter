@@ -11,6 +11,13 @@
   "license": "MIT",
   "documentationUrl": "https://github.com/DocMeVR/mask-painter#readme",
   "changelogUrl": "https://github.com/DocMeVR/mask-painter/blob/main/CHANGELOG.md",
-  "keywords": ["vrchat", "avatar", "docme", "mask", "texture", "paint"],
+  "keywords": [
+    "vrchat",
+    "avatar",
+    "docme",
+    "mask",
+    "texture",
+    "paint"
+  ],
   "vpmDependencies": {}
 }
