@@ -2,7 +2,7 @@
 
 Paint black and white masks for your avatar right on the model in the Scene view. White shows an effect, black hides it. The mask is laid out on the mesh's UV map, so it fits any texture slot of the material it is for: a Poiyomi emission mask, a glitter mask, the DocMe Skin Touch mask and so on. Any shader works. For shaders that read a different mask from each colour channel, you can paint one channel at a time.
 
-The window is in English and Japanese.
+The window is in English and Japanese: pick the language at its top right.
 
 ![A sweater whose two sleeves are filled green by the Mask Painter overlay, while its body stays grey.](https://raw.githubusercontent.com/DocMeVR/mask-painter/main/Docs~/images/example.jpg)
 
@@ -19,7 +19,7 @@ Optional, without the Creator Companion: download the `.unitypackage` from the [
 
 1. Open **Tools > DocMe > Mask Painter**. A selected mesh is already in **Mesh**; if not, drag one in from the Hierarchy (for example Body).
 2. Pick the **Material** the mask is for, what it should **Start with** and its **Size**, then press **Start painting**. To keep working on a mask the material already has, set **Start with** to **A texture** and press **Take it from the material**. Leave **UV map** on UV0 unless that material reads its mask from another UV map.
-3. In the Scene view, with **Fill pieces** on, click a piece of the model to fill it white; Shift+click fills it black. With **Brush** on, drag to paint white and hold Shift to paint black. The green overlay shows the white parts. Tick **Mirror** to paint both sides at once.
+3. The painting tools now show in the **Mask Painter** panel in the Scene view. With **Fill pieces** on, click a piece of the model to fill it white; Shift+click fills it black. With **Brush** on, drag to paint white and hold Shift to paint black. The green overlay shows the white parts. Tick **Mirror** to paint both sides at once.
 4. Press **Save as...** and pick where the PNG goes. The material's folder is offered first.
 5. Under **Save**, press the **Slot** button, type part of the slot's name (for example "emission"), pick it and press **Put into material**.
 
@@ -28,7 +28,8 @@ Optional, without the Creator Companion: download the `.unitypackage` from the [
 - Ctrl+Z undoes a fill, a brush stroke or a whole mask change, and Ctrl+Y redoes it.
 - Alt+drag still turns the Scene view while you paint. **Click does: Off** gives your clicks back to selecting objects.
 - The brush size is in centimetres on the model, and a stroke carries across UV seams. The [ and ] keys change the size. The brush paints only the side you aim at, so a stroke on the palm leaves the back of the hand alone.
-- **Strength** below 1 builds up greys over several strokes.
+- **Paint: Add** moves the mask toward white (black with Shift) by **Strength**, so low values build up greys over several strokes. **Paint: Replace** paints one exact **Grey level**.
+- The Scene view panel is hidden? Press the ` key in the Scene view and turn on **Mask Painter**.
 - **Show** switches the Scene view between the green **Overlay**, **Mask only** and **Nothing**.
 - To paint under clothes, hide them with the eye icon in the Hierarchy: that hides them only in the Scene view.
 - A piece is a part of the UV map that hangs together. UV seams split the model into pieces, which is why a click on the chest can fill the whole torso.

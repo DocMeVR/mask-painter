@@ -20,10 +20,6 @@ msgstr "エフェクトを表示したい場所を塗ります。白は表示、
 msgid "section.mesh"
 msgstr "メッシュ"
 
-#. en: Paint
-msgid "section.paint"
-msgstr "ペイント"
-
 #. en: Save
 msgid "section.save"
 msgstr "保存"
@@ -184,9 +180,9 @@ msgstr "ブラシの縁のぼけ具合です。0で縁がはっきり、1で完�
 msgid "field.strength"
 msgstr "強さ"
 
-#. en: How far one stroke moves the mask toward white or black: below 1, strokes build it up.
+#. en: How far one fill or stroke moves the mask toward white or black, so low values build it up over several strokes.
 msgid "field.strength.tip"
-msgstr "1回のストロークでマスクを白または黒へ近づける度合いです。1より小さいと、重ね塗りで少しずつ濃くなります。"
+msgstr "1回の塗りつぶしやストロークでマスクを白または黒へどれだけ近づけるかで、小さい値では何度も塗って少しずつ重ねられます。"
 
 #. en: Mirror
 msgid "field.mirror"
@@ -420,10 +416,6 @@ msgstr "マスクを塗る"
 msgid "undo.put"
 msgstr "マスクを{0}に入れる"
 
-#. en: Language
-msgid "field.language"
-msgstr "言語"
-
 #. en: The language of this window. Modular Avatar and other tools that use NDMF share this choice.
 msgid "field.language.tip"
 msgstr "このウィンドウの表示言語です。Modular Avatar など NDMF を使うツールと同じ設定を共有します。"
@@ -503,3 +495,39 @@ msgstr "{0}に書き込めませんでした：{1}"
 #. en: OK
 msgid "dialog.ok"
 msgstr "OK"
+
+#. en: The painting tools are in the Mask Painter panel in the Scene view. Hidden? Press the ` key in the Scene view and turn it on.
+msgid "hint.panel"
+msgstr "塗るためのツールはシーンビューの Mask Painter パネルにあります。見えない場合は、シーンビューで ` キーを押してオンにしてください。"
+
+#. en: Paint
+msgid "field.blend"
+msgstr "塗り方"
+
+#. en: Whether a fill or stroke adds up toward white or sets one exact grey.
+msgid "field.blend.tip"
+msgstr "塗りつぶしやストロークを白へ重ねていくか、決まったグレーにするかを選びます。"
+
+#. en: Add
+msgid "blend.add"
+msgstr "加算"
+
+#. en: Each fill or stroke moves the mask toward white by Strength, and toward black with Shift.
+msgid "blend.add.tip"
+msgstr "塗るたびに Strength の分だけ白へ、Shift を押すと黒へ近づけます。"
+
+#. en: Replace
+msgid "blend.replace"
+msgstr "置き換え"
+
+#. en: Each fill or stroke sets the mask to the Grey level, and to black with Shift.
+msgid "blend.replace.tip"
+msgstr "塗った場所を Grey level のグレーに、Shift を押すと黒にします。"
+
+#. en: Grey level
+msgid "field.level"
+msgstr "グレーの値"
+
+#. en: The grey a fill or stroke paints, from 0 for black to 1 for white.
+msgid "field.level.tip"
+msgstr "塗りつぶしやストロークで塗るグレーで、0 が黒、1 が白です。"

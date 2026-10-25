@@ -314,14 +314,18 @@ namespace DocMe.MaskPainter.Editor
         /// <summary>The texels a fill of island can change: the island's rectangle and its bleed.</summary>
         public RectInt IslandArea(int island) => Grow(islandRects[island], Bleed);
 
-        /// <summary>Sets every texel of one island to value.</summary>
-        public void FillIsland(int island, float value)
+        /// <summary>Moves every texel of one island toward value by amount (1 sets it exactly, 0 leaves it).</summary>
+        public void FillIsland(int island, float value, float amount = 1f)
         {
             var rect = islandRects[island];
             if (rect.width == 0) return;
+            amount = Mathf.Clamp01(amount);
             for (int y = rect.yMin; y < rect.yMax; y++)
                 for (int x = rect.xMin; x < rect.xMax; x++)
-                    if (owner[y * Width + x] == island) Values[y * Width + x] = value;
+                {
+                    int i = y * Width + x;
+                    if (owner[i] == island) Values[i] = amount >= 1f ? value : Values[i] + (value - Values[i]) * amount;
+                }
             BleedIntoGaps(rect);
             MarkChanged(IslandArea(island));
         }
