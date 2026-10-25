@@ -24,7 +24,6 @@ namespace DocMe.MaskPainter.Editor
             "window.title.unsaved",
             "intro.text",
             "section.mesh",
-            "section.paint",
             "section.save",
             "field.mesh",
             "field.mesh.tip",
@@ -124,7 +123,6 @@ namespace DocMe.MaskPainter.Editor
             "undo.invert",
             "undo.paint",
             "undo.put",
-            "field.language",
             "field.language.tip",
             "button.fromslot",
             "button.fromslot.tip",
@@ -145,6 +143,15 @@ namespace DocMe.MaskPainter.Editor
             "dialog.replace.colour",
             "status.savefailed",
             "dialog.ok",
+            "hint.panel",
+            "field.blend",
+            "field.blend.tip",
+            "blend.add",
+            "blend.add.tip",
+            "blend.replace",
+            "blend.replace.tip",
+            "field.level",
+            "field.level.tip",
         };
 
         public static string T(string key) => Find(key, MaskLanguage.Current);

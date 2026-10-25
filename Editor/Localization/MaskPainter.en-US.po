@@ -15,9 +15,6 @@ msgstr "Paint where an effect shows: white shows it, black hides it. The mask fo
 msgid "section.mesh"
 msgstr "Mesh"
 
-msgid "section.paint"
-msgstr "Paint"
-
 msgid "section.save"
 msgstr "Save"
 
@@ -139,7 +136,7 @@ msgid "field.strength"
 msgstr "Strength"
 
 msgid "field.strength.tip"
-msgstr "How far one stroke moves the mask toward white or black: below 1, strokes build it up."
+msgstr "How far one fill or stroke moves the mask toward white or black, so low values build it up over several strokes."
 
 msgid "field.mirror"
 msgstr "Mirror"
@@ -315,9 +312,6 @@ msgstr "Paint mask"
 msgid "undo.put"
 msgstr "Put mask into {0}"
 
-msgid "field.language"
-msgstr "Language"
-
 msgid "field.language.tip"
 msgstr "The language of this window. Modular Avatar and other tools that use NDMF share this choice."
 
@@ -377,3 +371,30 @@ msgstr "Could not write {0}: {1}"
 
 msgid "dialog.ok"
 msgstr "OK"
+
+msgid "hint.panel"
+msgstr "The painting tools are in the Mask Painter panel in the Scene view. Hidden? Press the ` key in the Scene view and turn it on."
+
+msgid "field.blend"
+msgstr "Paint"
+
+msgid "field.blend.tip"
+msgstr "Whether a fill or stroke adds up toward white or sets one exact grey."
+
+msgid "blend.add"
+msgstr "Add"
+
+msgid "blend.add.tip"
+msgstr "Each fill or stroke moves the mask toward white by Strength, and toward black with Shift."
+
+msgid "blend.replace"
+msgstr "Replace"
+
+msgid "blend.replace.tip"
+msgstr "Each fill or stroke sets the mask to the Grey level, and to black with Shift."
+
+msgid "field.level"
+msgstr "Grey level"
+
+msgid "field.level.tip"
+msgstr "The grey a fill or stroke paints, from 0 for black to 1 for white."

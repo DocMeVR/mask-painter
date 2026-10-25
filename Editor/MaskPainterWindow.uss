@@ -1,88 +1,66 @@
-.docme-mp {
-    --docme-accent: rgb(63, 201, 168);
-    padding: 4px 6px 8px 6px;
-}
+/* DocMe theme for UI Toolkit editor views (Unity 2022.3). Copy this file next to a tool's view as <Tool>.uss and add
+   the tool's own rules below the marked line. Values are AvatarDoc's (Packages/dev.docme.avatar-doctor/Editor/UI/
+   AvatarDoctor.uss), with docme- names. A sheet added to a root styles only that root's subtree, so two tools using
+   these class names never affect each other. The C# adds docme-root, and docme-light when !EditorGUIUtility.isProSkin. */
 
-.docme-mp__intro {
-    white-space: normal;
-    margin-bottom: 4px;
-}
+.docme-root { --docme-accent: #3FC9A8; --docme-accent-fg: #0F1F1A; --docme-warn: #E0A83A; --docme-error: #E5645A; --docme-muted: rgba(255, 255, 255, 0.72); --docme-faint: rgba(255, 255, 255, 0.5); --docme-panel: rgba(255, 255, 255, 0.04); --docme-field: rgba(0, 0, 0, 0.25); --docme-border: rgba(0, 0, 0, 0.35); --docme-selection: rgba(63, 201, 168, 0.16); padding: 4px 0; }
+.docme-root.docme-light { --docme-accent: #128A6E; --docme-accent-fg: #FFFFFF; --docme-warn: #B7791F; --docme-error: #C4463C; --docme-muted: rgba(0, 0, 0, 0.72); --docme-faint: rgba(0, 0, 0, 0.5); --docme-panel: rgba(255, 255, 255, 0.35); --docme-field: rgba(255, 255, 255, 0.55); --docme-border: rgba(0, 0, 0, 0.2); --docme-selection: rgba(18, 138, 110, 0.16); }
 
-.docme-mp__section {
-    margin-top: 8px;
-    margin-bottom: 2px;
-    padding-bottom: 2px;
-    -unity-font-style: bold;
-    border-bottom-width: 1px;
-    border-bottom-color: var(--docme-accent);
-}
+/* Unity's controls stay native (their own colours follow the editor skin); only sizes are set so rows line up. */
+.docme-root .unity-base-field__label { color: var(--docme-muted); font-size: 11px; min-width: 112px; flex-basis: 112px; flex-grow: 0; flex-shrink: 0; }
+.docme-root .unity-composite-field__input .unity-base-field__label { min-width: auto; flex-basis: auto; }
+.docme-root .unity-base-field__input, .docme-root .unity-object-field__input { min-height: 20px; }
+.docme-root .unity-base-field { flex-shrink: 1; min-width: 0; }
 
-.docme-mp .unity-base-field {
-    margin-left: 0;
-    margin-right: 0;
-    align-items: center;
-}
+/* Header: every view's first row. The tool's name on the left, the language picker at the right end (AvatarDoc's
+   LanguagePicker look: the language's own name and Unity's popup arrow, framed like a field). */
+.docme-header { flex-direction: row; align-items: center; min-height: 22px; margin-bottom: 4px; }
+.docme-title { -unity-font-style: bold; font-size: 12px; flex-grow: 1; flex-shrink: 1; margin: 0; }
+.docme-root .unity-button.docme-language { flex-direction: row; align-items: center; flex-shrink: 0; height: 20px; min-height: 20px; margin: 0 0 0 4px; padding: 0 4px 0 6px; border-width: 1px; border-color: var(--docme-border); border-radius: 3px; }
+.docme-language > Label { font-size: 10.5px; margin: 0 2px 0 0; padding: 0; -unity-text-align: middle-left; }
 
-.docme-mp .unity-base-field > .unity-base-field__label {
-    min-width: 112px;
-    width: 112px;
-    max-width: 112px;
-}
+/* Layout */
+.docme-section { -unity-font-style: bold; font-size: 10px; letter-spacing: 1px; color: var(--docme-muted); margin: 8px 0 4px 0; }
+.docme-panel { background-color: var(--docme-panel); border-width: 1px; border-color: var(--docme-border); border-radius: 3px; padding: 6px 8px; margin-bottom: 6px; }
+.docme-row { flex-direction: row; align-items: center; min-height: 22px; margin-bottom: 4px; }
+.docme-row > .docme-label { min-width: 112px; flex-basis: 112px; flex-shrink: 0; color: var(--docme-muted); font-size: 11px; }
+.docme-row > .docme-grow { flex-grow: 1; flex-shrink: 1; min-width: 0; }
+.docme-row > Button { flex-shrink: 0; margin: 0 0 0 4px; }
+.docme-wrap { flex-direction: row; flex-wrap: wrap; align-items: center; }
+.docme-note { color: var(--docme-muted); font-size: 11px; white-space: normal; margin-bottom: 4px; }
+.docme-indent { margin-left: 112px; }
+.docme-hidden { display: none; }
 
-.docme-mp .docme-mp__row {
-    flex-direction: row;
-    align-items: flex-start;
-}
+/* Status text and chips: one base, one modifier per tone */
+.docme-ok { color: var(--docme-accent); -unity-font-style: bold; }
+.docme-warn { color: var(--docme-warn); }
+.docme-error { color: var(--docme-error); -unity-font-style: bold; }
+.docme-chip { height: 16px; padding: 0 4px; margin-left: 4px; font-size: 10px; border-width: 1px; border-radius: 3px; border-color: var(--docme-border); color: var(--docme-muted); -unity-text-align: middle-center; flex-shrink: 0; }
+.docme-chip.docme-ok { color: var(--docme-accent); border-color: var(--docme-accent); -unity-font-style: normal; }
+.docme-chip.docme-warn { border-color: var(--docme-warn); }
+.docme-chip.docme-error { border-color: var(--docme-error); -unity-font-style: normal; }
 
-.docme-mp__row > .unity-base-field__label {
-    padding-top: 2px;
-}
+/* Buttons: one primary (accent) per view; segmented choice for 2 to 4 options */
+.docme-root .unity-button.docme-primary { background-color: var(--docme-accent); color: var(--docme-accent-fg); -unity-font-style: bold; border-width: 0; }
+.docme-root .unity-button.docme-primary:hover { opacity: 0.9; }
+.docme-seg { flex-direction: row; height: 20px; border-width: 1px; border-color: var(--docme-border); border-radius: 3px; overflow: hidden; }
+.docme-root .unity-button.docme-seg-item { flex-grow: 1; flex-shrink: 1; min-width: 20px; margin: 0; padding: 2px 8px; border-width: 0; border-radius: 0; font-size: 10.5px; -unity-text-align: middle-center; }
+.docme-root .unity-button.docme-seg-item.docme-seg-on { background-color: var(--docme-accent); color: var(--docme-accent-fg); -unity-font-style: bold; }
 
-.docme-mp__row-box {
-    flex-direction: row;
-    flex-wrap: wrap;
-    flex-grow: 1;
-    flex-shrink: 1;
-}
+/* Lists: selected row gets the accent bar */
+.docme-root .unity-collection-view__item { border-left-width: 2px; border-left-color: rgba(0, 0, 0, 0); }
+.docme-root .unity-collection-view__item:hover { background-color: var(--docme-field); }
+.docme-root .unity-collection-view__item--selected { background-color: var(--docme-selection); border-left-color: var(--docme-accent); }
 
-.docme-mp__button {
-    margin-left: 0;
-    margin-right: 4px;
-    margin-top: 2px;
-    margin-bottom: 2px;
-}
-
-.docme-mp__action {
-    align-self: flex-start;
-    margin-top: 4px;
-}
-
-.docme-mp__choice--on {
-    background-color: var(--docme-accent);
-    border-color: var(--docme-accent);
-    color: rgb(16, 16, 16);
-}
-
-.docme-mp__hint {
-    white-space: normal;
-    margin-top: 2px;
-    margin-bottom: 2px;
-    opacity: 0.8;
-}
-
-.docme-mp__status {
-    margin-top: 8px;
-    opacity: 1;
-}
-
-.docme-mp .unity-help-box {
-    margin-left: 0;
-    margin-right: 0;
-    margin-top: 4px;
-}
-
-.docme-mp__picker {
-    flex-grow: 1;
-    flex-shrink: 1;
-    -unity-text-align: middle-left;
-}
+/* ---- tool rules below: prefix them with the tool's short name (docme-st-, docme-mp-) ---- */
+.docme-mp-window { padding: 4px 6px 8px 6px; }
+.docme-mp-panel { min-width: 290px; max-width: 340px; padding: 2px 2px 4px 2px; }
+.docme-root .unity-base-field { margin-left: 0; margin-right: 0; }
+.docme-root .unity-help-box { margin: 4px 0; }
+.docme-root .unity-button.docme-mp-button { margin: 0 4px 0 0; flex-shrink: 0; }
+.docme-row > .docme-seg { flex-grow: 1; flex-shrink: 1; min-width: 0; }
+.docme-row > .docme-wrap { flex-grow: 1; flex-shrink: 1; min-width: 0; }
+.docme-wrap > .unity-button { margin: 0 4px 4px 0; }
+.docme-root .unity-button.docme-primary { align-self: flex-start; margin: 4px 0; padding: 2px 10px; }
+.docme-root .unity-button.docme-mp-picker { flex-grow: 1; flex-shrink: 1; margin: 0; -unity-text-align: middle-left; }
+.docme-mp-status { margin-top: 8px; }

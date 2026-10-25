@@ -220,7 +220,8 @@ namespace DocMe.MaskPainter.Editor
             return mesh.FacingSurfaceNear(point, normal, reach, out mirrored);
         }
 
-        public void FillPiece(MaskHit hit, float value)
+        /// <param name="amount">How far the piece moves toward value: 1 sets it, below 1 builds up as a brush with that strength does.</param>
+        public void FillPiece(MaskHit hit, float value, float amount = 1f)
         {
             if (!IsValid(hit)) return;
             int island = IslandAt(hit);
@@ -228,8 +229,8 @@ namespace DocMe.MaskPainter.Editor
             var area = Canvas.IslandArea(island);
             if (other != island) area = Union(area, Canvas.IslandArea(other));
             var before = Canvas.Snapshot(area);
-            Canvas.FillIsland(island, value);
-            if (other != island) Canvas.FillIsland(other, value);
+            Canvas.FillIsland(island, value, amount);
+            if (other != island) Canvas.FillIsland(other, value, amount);
             Record(MaskText.T("undo.fillpiece"), area, before);
         }
 
