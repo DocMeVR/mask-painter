@@ -58,7 +58,7 @@ msgid "field.texture"
 msgstr "Texture"
 
 msgid "field.texture.tip"
-msgstr "An existing mask to keep painting on: its size is kept and the file itself is never changed."
+msgstr "An existing mask to keep painting on, with its size and every channel kept."
 
 msgid "field.size"
 msgstr "Size"
@@ -320,3 +320,60 @@ msgstr "Language"
 
 msgid "field.language.tip"
 msgstr "The language of this window. Modular Avatar and other tools that use NDMF share this choice."
+
+msgid "button.fromslot"
+msgstr "Take it from the material"
+
+msgid "button.fromslot.tip"
+msgstr "Starts from the texture in one of the material's slots, and puts the mask back into that slot later."
+
+msgid "status.slotempty"
+msgstr "{0} holds no texture to start from."
+
+msgid "field.channel"
+msgstr "Paint into"
+
+msgid "field.channel.tip"
+msgstr "Which colour channel of the mask you paint, for shaders that read a different mask from each one."
+
+msgid "channel.all"
+msgstr "All channels (grey)"
+
+msgid "channel.red"
+msgstr "Red"
+
+msgid "channel.green"
+msgstr "Green"
+
+msgid "channel.blue"
+msgstr "Blue"
+
+msgid "channel.alpha"
+msgstr "Alpha"
+
+msgid "hint.channel"
+msgstr "Only the {0} channel changes: white and black mean how much of it, and the other channels stay as they are."
+
+msgid "saved.opened"
+msgstr "Opened from {0}. Save writes over that file."
+
+msgid "dialog.replace.title"
+msgstr "Replace the file?"
+
+msgid "dialog.replace.message"
+msgstr "Saving writes over {0}. Every material that uses this file changes too, and Ctrl+Z cannot bring the old file back."
+
+msgid "dialog.replace.ok"
+msgstr "Replace"
+
+msgid "dialog.replace.new"
+msgstr "Save as a new file"
+
+msgid "dialog.replace.colour"
+msgstr "It is set up as a colour texture now. Saving sets it up as a mask, so a material that shows it as a colour looks different."
+
+msgid "status.savefailed"
+msgstr "Could not write {0}: {1}"
+
+msgid "dialog.ok"
+msgstr "OK"

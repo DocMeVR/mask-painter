@@ -76,9 +76,9 @@ msgstr "テクスチャ"
 msgid "field.texture"
 msgstr "テクスチャ"
 
-#. en: An existing mask to keep painting on: its size is kept and the file itself is never changed.
+#. en: An existing mask to keep painting on, with its size and every channel kept.
 msgid "field.texture.tip"
-msgstr "続きを塗りたい既存のマスクです。サイズはそのまま引き継がれ、元のファイルは変更されません。"
+msgstr "続きを塗りたい既存のマスクで、サイズとすべてのチャンネルがそのまま引き継がれます。"
 
 #. en: Size
 msgid "field.size"
@@ -427,3 +427,79 @@ msgstr "言語"
 #. en: The language of this window. Modular Avatar and other tools that use NDMF share this choice.
 msgid "field.language.tip"
 msgstr "このウィンドウの表示言語です。Modular Avatar など NDMF を使うツールと同じ設定を共有します。"
+
+#. en: Take it from the material
+msgid "button.fromslot"
+msgstr "マテリアルから取り込む"
+
+#. en: Starts from the texture in one of the material's slots, and puts the mask back into that slot later.
+msgid "button.fromslot.tip"
+msgstr "マテリアルのスロットにあるテクスチャから始め、あとでマスクを同じスロットに戻します。"
+
+#. en: {0} holds no texture to start from.
+msgid "status.slotempty"
+msgstr "{0}には始めるためのテクスチャがありません。"
+
+#. en: Paint into
+msgid "field.channel"
+msgstr "塗るチャンネル"
+
+#. en: Which colour channel of the mask you paint, for shaders that read a different mask from each one.
+msgid "field.channel.tip"
+msgstr "チャンネルごとに別のマスクを読むシェーダーのために、マスクのどの色チャンネルを塗るかを選びます。"
+
+#. en: All channels (grey)
+msgid "channel.all"
+msgstr "すべてのチャンネル（グレー）"
+
+#. en: Red
+msgid "channel.red"
+msgstr "赤"
+
+#. en: Green
+msgid "channel.green"
+msgstr "緑"
+
+#. en: Blue
+msgid "channel.blue"
+msgstr "青"
+
+#. en: Alpha
+msgid "channel.alpha"
+msgstr "アルファ"
+
+#. en: Only the {0} channel changes: white and black mean how much of it, and the other channels stay as they are.
+msgid "hint.channel"
+msgstr "{0}チャンネルだけが変わります。白と黒はその量を表し、ほかのチャンネルはそのまま残ります。"
+
+#. en: Opened from {0}. Save writes over that file.
+msgid "saved.opened"
+msgstr "{0}から開きました。保存するとこのファイルに上書きされます。"
+
+#. en: Replace the file?
+msgid "dialog.replace.title"
+msgstr "ファイルを上書きしますか？"
+
+#. en: Saving writes over {0}. Every material that uses this file changes too, and Ctrl+Z cannot bring the old file back.
+msgid "dialog.replace.message"
+msgstr "{0}に上書き保存します。このファイルを使うすべてのマテリアルも変わり、Ctrl+Zでは元のファイルに戻せません。"
+
+#. en: Replace
+msgid "dialog.replace.ok"
+msgstr "上書き"
+
+#. en: Save as a new file
+msgid "dialog.replace.new"
+msgstr "新しいファイルとして保存"
+
+#. en: It is set up as a colour texture now. Saving sets it up as a mask, so a material that shows it as a colour looks different.
+msgid "dialog.replace.colour"
+msgstr "現在はカラーテクスチャとして設定されています。保存するとマスクとして設定し直すため、色として表示しているマテリアルは見た目が変わります。"
+
+#. en: Could not write {0}: {1}
+msgid "status.savefailed"
+msgstr "{0}に書き込めませんでした：{1}"
+
+#. en: OK
+msgid "dialog.ok"
+msgstr "OK"

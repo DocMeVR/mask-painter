@@ -16,6 +16,8 @@ namespace DocMe.MaskPainter.Editor
         public int MaterialIndex;
         public MaskPainterUndo UndoMarker;
         public string SavedPath;
+        /// <summary>SavedPath is the file the painting started from, not written yet: the window asks before replacing it.</summary>
+        public bool ReplacesStart;
         public bool Unsaved;
         /// <summary>When the painting started (UTC ticks), so the newest one is picked up again first.</summary>
         public long Started;
