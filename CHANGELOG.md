@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/DocMeVR/mask-painter/compare/1.1.0...1.2.0) (2026-10-25)
+
+
+### Features
+
+* **paint:** painting tools in a Scene view panel, Add or Replace ([#4](https://github.com/DocMeVR/mask-painter/issues/4)) ([e6d3b10](https://github.com/DocMeVR/mask-painter/commit/e6d3b10d0537656ba0a07a4d86a9c6722b258627))
+
 ## [1.1.0](https://github.com/DocMeVR/mask-painter/compare/1.0.0...1.1.0) (2026-10-25)
 
 
