@@ -4,6 +4,9 @@ using UnityEngine;
 
 namespace DocMe.MaskPainter.Editor
 {
+    /// <summary>Which colour channel of the mask is painted. All paints red, green and blue together: a plain grey mask.</summary>
+    public enum MaskChannel { All, Red, Green, Blue, Alpha }
+
     /// <summary>
     /// A mask being painted: width x height values from 0 (black) to 1 (white), laid out like a mesh's UV map. Bound to a
     /// mesh, it knows which texels each UV island covers, so it can fill pieces, paint with a brush measured on the model,
@@ -14,7 +17,14 @@ namespace DocMe.MaskPainter.Editor
     {
         public int Width;
         public int Height;
+        /// <summary>The channel being painted.</summary>
         public float[] Values;
+        /// <summary>
+        /// Every channel, four bytes per texel, as they were when Channel was last picked. Values holds the painted one;
+        /// Commit writes it back. Null in a painting from before channels, which is grey.
+        /// </summary>
+        public byte[] Pixels;
+        public MaskChannel Channel;
 
         /// <summary>How many texels a piece's edge values spread into the empty space around it.</summary>
         public const int Bleed = 2;
@@ -33,6 +43,7 @@ namespace DocMe.MaskPainter.Editor
             Height = height;
             Values = new float[width * height];
             for (int i = 0; i < Values.Length; i++) Values[i] = fill;
+            Pixels = Grey(Values);
         }
 
         public float this[int x, int y]
@@ -41,25 +52,146 @@ namespace DocMe.MaskPainter.Editor
             set => Values[y * Width + x] = value;
         }
 
-        /// <summary>The red channel of a readable texture, as stored.</summary>
+        /// <summary>Every channel of a readable texture, as stored, with red shown.</summary>
         public static MaskCanvas From(Texture2D texture)
         {
             var canvas = new MaskCanvas(texture.width, texture.height, 0f);
             var pixels = texture.GetPixels32();
-            for (int i = 0; i < pixels.Length; i++) canvas.Values[i] = pixels[i].r / 255f;
+            for (int i = 0; i < pixels.Length; i++)
+            {
+                canvas.Pixels[4 * i] = pixels[i].r;
+                canvas.Pixels[4 * i + 1] = pixels[i].g;
+                canvas.Pixels[4 * i + 2] = pixels[i].b;
+                canvas.Pixels[4 * i + 3] = pixels[i].a;
+                canvas.Values[i] = pixels[i].r / 255f;
+            }
             return canvas;
+        }
+
+        /// <summary>Turns the colour channels of an sRGB texture into the amounts a shader reads from it; alpha stays.</summary>
+        public void DecodeSrgb()
+        {
+            Commit();
+            var linear = new byte[256];
+            for (int v = 0; v < 256; v++) linear[v] = Byte(Mathf.GammaToLinearSpace(v / 255f));
+            int offset = Offset(Channel);
+            for (int i = 0; i < Values.Length; i++)
+            {
+                if (offset < 3) Values[i] = Mathf.GammaToLinearSpace(Pixels[4 * i + offset] / 255f);
+                for (int c = 0; c < 3; c++) Pixels[4 * i + c] = linear[Pixels[4 * i + c]];
+            }
+            MarkChanged(All);
+        }
+
+        static byte[] Grey(float[] values)
+        {
+            var pixels = new byte[4 * values.Length];
+            for (int i = 0; i < values.Length; i++)
+            {
+                byte v = Byte(values[i]);
+                pixels[4 * i] = pixels[4 * i + 1] = pixels[4 * i + 2] = v;
+                pixels[4 * i + 3] = 255;
+            }
+            return pixels;
+        }
+
+        static byte Byte(float value) => (byte)Mathf.RoundToInt(Mathf.Clamp01(value) * 255f);
+
+        static int Offset(MaskChannel channel) => channel == MaskChannel.All ? 0 : (int)channel - 1;
+
+        /// <summary>Writes the painted channel into Pixels everywhere.</summary>
+        public void Commit() => Commit(All);
+
+        /// <summary>
+        /// Writes the painted channel into Pixels inside rect. All channels writes grey only where the value differs from
+        /// red, so the texels it never painted keep their own channels.
+        /// </summary>
+        public void Commit(RectInt rect)
+        {
+            if (Pixels == null || Pixels.Length != 4 * Values.Length)
+            {
+                // A painting from before channels: every channel was the values.
+                Pixels = Grey(Values);
+                return;
+            }
+            int offset = Offset(Channel);
+            for (int y = rect.yMin; y < rect.yMax; y++)
+                for (int x = rect.xMin; x < rect.xMax; x++)
+                {
+                    int i = y * Width + x;
+                    byte v = Byte(Values[i]);
+                    if (Channel != MaskChannel.All) Pixels[4 * i + offset] = v;
+                    else if (v != Pixels[4 * i]) Pixels[4 * i] = Pixels[4 * i + 1] = Pixels[4 * i + 2] = v;
+                }
+        }
+
+        /// <summary>Gives a painting from before channels its channels, the grey it was. Call before painting on it.</summary>
+        public void EnsurePixels()
+        {
+            if (Pixels == null || Pixels.Length != 4 * Values.Length) Pixels = Grey(Values);
+        }
+
+        /// <summary>Every channel's bytes inside rect, row by row.</summary>
+        public byte[] PixelsIn(RectInt rect)
+        {
+            EnsurePixels();
+            var bytes = new byte[4 * rect.width * rect.height];
+            for (int y = 0; y < rect.height; y++)
+                Array.Copy(Pixels, 4 * ((rect.y + y) * Width + rect.x), bytes, 4 * y * rect.width, 4 * rect.width);
+            return bytes;
+        }
+
+        /// <summary>Writes bytes from PixelsIn back into rect, and the painted channel's values with them.</summary>
+        public void RestorePixels(RectInt rect, byte[] bytes)
+        {
+            int offset = Offset(Channel);
+            for (int y = 0; y < rect.height; y++)
+            {
+                Array.Copy(bytes, 4 * y * rect.width, Pixels, 4 * ((rect.y + y) * Width + rect.x), 4 * rect.width);
+                for (int x = 0; x < rect.width; x++)
+                {
+                    int i = (rect.y + y) * Width + rect.x + x;
+                    Values[i] = Pixels[4 * i + offset] / 255f;
+                }
+            }
+            MarkChanged(rect);
+        }
+
+        /// <summary>Keeps the channel painted so far and shows another one in Values.</summary>
+        public void SelectChannel(MaskChannel channel)
+        {
+            Commit();
+            Channel = channel;
+            int offset = Offset(channel);
+            for (int i = 0; i < Values.Length; i++) Values[i] = Pixels[4 * i + offset] / 255f;
+            MarkChanged(All);
+        }
+
+        /// <summary>Whether any texel's alpha is below full.</summary>
+        public bool UsesAlpha()
+        {
+            ChannelsUsed(out _, out _, out bool alpha);
+            return alpha;
+        }
+
+        /// <summary>Which channels hold anything but what a format without them reads: green or blue above 0, alpha below 1.</summary>
+        public void ChannelsUsed(out bool green, out bool blue, out bool alpha)
+        {
+            Commit();
+            green = blue = alpha = false;
+            for (int i = 0; i < Pixels.Length; i += 4)
+            {
+                green |= Pixels[i + 1] != 0;
+                blue |= Pixels[i + 2] != 0;
+                alpha |= Pixels[i + 3] != 255;
+            }
         }
 
         public Texture2D ToTexture()
         {
+            Commit();
             var texture = new Texture2D(Width, Height, TextureFormat.RGBA32, false, true);
-            var pixels = new Color32[Values.Length];
-            for (int i = 0; i < Values.Length; i++)
-            {
-                byte v = (byte)Mathf.RoundToInt(Mathf.Clamp01(Values[i]) * 255f);
-                pixels[i] = new Color32(v, v, v, 255);
-            }
-            texture.SetPixels32(pixels);
+            texture.SetPixelData(Pixels, 0);
             texture.Apply();
             return texture;
         }
@@ -141,16 +273,6 @@ namespace DocMe.MaskPainter.Editor
         {
             for (int i = 0; i < Values.Length; i++) Values[i] = 1f - Values[i];
             MarkChanged(All);
-        }
-
-        /// <summary>Writes values kept by the history (0 to 65535) back into a rectangle.</summary>
-        public void Restore(RectInt rect, ushort[] values)
-        {
-            int k = 0;
-            for (int y = rect.yMin; y < rect.yMax; y++)
-                for (int x = rect.xMin; x < rect.xMax; x++)
-                    Values[y * Width + x] = values[k++] / 65535f;
-            MarkChanged(rect);
         }
 
         /// <summary>Learns which island covers each texel, and the rectangle each island covers. The values stay as they are.</summary>

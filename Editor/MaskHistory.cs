@@ -4,18 +4,20 @@ using UnityEngine;
 namespace DocMe.MaskPainter.Editor
 {
     /// <summary>
-    /// The painter's own undo steps: for each fill or stroke, the rectangle it changed with the values before and after
-    /// (16 bit). Unity's Undo only records a step number on a small object, so Ctrl+Z never copies the whole mask.
-    /// Positions count steps; the history starts at the number Unity's Undo holds now, so steps stay in line with it.
+    /// The painter's own undo steps: for each fill or stroke, the rectangle it changed with every channel's bytes before
+    /// and after, and the channel it was painted in. Unity's Undo only records a step number on a small object, so Ctrl+Z
+    /// never copies the whole mask. Positions count steps; the history starts at the number Unity's Undo holds now, so
+    /// steps stay in line with it.
     /// </summary>
     public sealed class MaskHistory
     {
         sealed class Step
         {
             public RectInt Rect;
-            public ushort[] Before;
-            public ushort[] After;
-            public long Bytes => 4L * Before.Length;
+            public MaskChannel Channel;
+            public byte[] Before;
+            public byte[] After;
+            public long Bytes => 2L * Before.Length;
         }
 
         /// <summary>The memory the steps may use; the oldest go first past it.</summary>
@@ -36,7 +38,10 @@ namespace DocMe.MaskPainter.Editor
         /// <summary>Keeps what changed from before (the whole canvas) to the canvas now as a new step. False when nothing changed.</summary>
         public bool Commit(float[] before, MaskCanvas canvas) => Commit(new RectInt(0, 0, canvas.Width, canvas.Height), before, canvas);
 
-        /// <summary>The same for a change that stayed inside area, with before holding only that area's values.</summary>
+        /// <summary>
+        /// The same for a change that stayed inside area, with before holding only that area's values. The change is
+        /// written into the canvas's channels here, so the step holds them as they were and as they are.
+        /// </summary>
         public bool Commit(RectInt area, float[] before, MaskCanvas canvas)
         {
             int w = canvas.Width;
@@ -62,7 +67,9 @@ namespace DocMe.MaskPainter.Editor
                 steps.RemoveAt(k);
             }
             var rect = new RectInt(minX, minY, maxX - minX + 1, maxY - minY + 1);
-            var step = new Step { Rect = rect, Before = Pack(before, area, rect), After = Pack(now, new RectInt(0, 0, w, canvas.Height), rect) };
+            var step = new Step { Rect = rect, Channel = canvas.Channel, Before = canvas.PixelsIn(rect) };
+            canvas.Commit(rect);
+            step.After = canvas.PixelsIn(rect);
             steps.Add(step);
             bytes += step.Bytes;
             Position++;
@@ -75,33 +82,32 @@ namespace DocMe.MaskPainter.Editor
             return true;
         }
 
-        /// <summary>Undoes or redoes steps until the history is at position, as far as the kept steps reach.</summary>
+        /// <summary>
+        /// Undoes or redoes steps until the history is at position, as far as the kept steps reach. The canvas shows the
+        /// channel of the last step it walked.
+        /// </summary>
         public void MoveTo(int position, MaskCanvas canvas)
         {
             position = Mathf.Clamp(position, first, first + steps.Count);
             while (Position > position)
             {
                 var step = steps[Position - first - 1];
-                canvas.Restore(step.Rect, step.Before);
+                Show(step, canvas);
+                canvas.RestorePixels(step.Rect, step.Before);
                 Position--;
             }
             while (Position < position)
             {
                 var step = steps[Position - first];
-                canvas.Restore(step.Rect, step.After);
+                Show(step, canvas);
+                canvas.RestorePixels(step.Rect, step.After);
                 Position++;
             }
         }
 
-        /// <summary>The values of rect, read from an array that holds the area from (in canvas texels).</summary>
-        static ushort[] Pack(float[] values, RectInt from, RectInt rect)
+        static void Show(Step step, MaskCanvas canvas)
         {
-            var packed = new ushort[rect.width * rect.height];
-            int k = 0;
-            for (int y = rect.yMin; y < rect.yMax; y++)
-                for (int x = rect.xMin; x < rect.xMax; x++)
-                    packed[k++] = (ushort)Mathf.RoundToInt(Mathf.Clamp01(values[(y - from.yMin) * from.width + x - from.xMin]) * 65535f);
-            return packed;
+            if (canvas.Channel != step.Channel) canvas.SelectChannel(step.Channel);
         }
     }
 }

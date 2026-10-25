@@ -26,20 +26,87 @@ namespace DocMe.MaskPainter.Editor
             AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceUpdate);
             var importer = (TextureImporter)AssetImporter.GetAtPath(assetPath);
             int size = SizeFor(Mathf.Max(canvas.Width, canvas.Height));
+            // A painted alpha is an amount like the other channels, so it is read from the file but never see-through.
+            var alpha = canvas.UsesAlpha() ? TextureImporterAlphaSource.FromInput : TextureImporterAlphaSource.None;
             // Never shrunk below the mask's own size, and never the default compression: its 5 bit red bands soft edges.
             bool settings = importer.sRGBTexture || importer.wrapMode != TextureWrapMode.Clamp || importer.textureType != TextureImporterType.Default
-                || importer.maxTextureSize < size || importer.textureCompression == TextureImporterCompression.Compressed;
+                || importer.maxTextureSize < size || importer.textureCompression == TextureImporterCompression.Compressed
+                || importer.alphaSource != alpha || importer.alphaIsTransparency;
             if (settings)
             {
                 importer.textureType = TextureImporterType.Default;
                 importer.sRGBTexture = false;
                 importer.wrapMode = TextureWrapMode.Clamp;
-                importer.alphaSource = TextureImporterAlphaSource.None;
+                importer.alphaSource = alpha;
+                importer.alphaIsTransparency = false;
                 if (importer.maxTextureSize < size) importer.maxTextureSize = size;
                 if (importer.textureCompression == TextureImporterCompression.Compressed) importer.textureCompression = TextureImporterCompression.CompressedHQ;
                 importer.SaveAndReimport();
             }
+            if (LiftLossyOverrides(importer, canvas)) importer.SaveAndReimport();
             return AssetDatabase.LoadAssetAtPath<Texture2D>(assetPath);
+        }
+
+        static readonly string[] Platforms = { "Standalone", "Android", "iPhone" };
+
+        /// <summary>
+        /// Turns off a platform's own format where it keeps fewer channels than the mask uses (a red only format reads
+        /// green and blue as 0 and alpha as 1), so a painted channel is never dropped. True when one was turned off.
+        /// </summary>
+        static bool LiftLossyOverrides(TextureImporter importer, MaskCanvas canvas)
+        {
+            canvas.ChannelsUsed(out bool green, out bool blue, out bool alpha);
+            bool changed = false;
+            foreach (var platform in Platforms)
+            {
+                var settings = importer.GetPlatformTextureSettings(platform);
+                if (!settings.overridden) continue;
+                int kept = ChannelsKept(settings.format);
+                bool loses = (kept < 2 && green) || (kept < 3 && blue) || (kept < 4 && alpha);
+                if (!loses) continue;
+                settings.overridden = false;
+                importer.SetPlatformTextureSettings(settings);
+                changed = true;
+            }
+            return changed;
+        }
+
+        /// <summary>How many of red, green, blue and alpha a format keeps; 4 for any colour format.</summary>
+        static int ChannelsKept(TextureImporterFormat format)
+        {
+            switch (format)
+            {
+                case TextureImporterFormat.BC4:
+                case TextureImporterFormat.R8:
+                case TextureImporterFormat.R16:
+                case TextureImporterFormat.RHalf:
+                case TextureImporterFormat.RFloat:
+                case TextureImporterFormat.EAC_R:
+                case TextureImporterFormat.EAC_R_SIGNED:
+                case TextureImporterFormat.Alpha8:
+                    return 1;
+                case TextureImporterFormat.BC5:
+                case TextureImporterFormat.RG16:
+                case TextureImporterFormat.RGHalf:
+                case TextureImporterFormat.RGFloat:
+                case TextureImporterFormat.EAC_RG:
+                case TextureImporterFormat.EAC_RG_SIGNED:
+                    return 2;
+                case TextureImporterFormat.DXT1:
+                case TextureImporterFormat.DXT1Crunched:
+                case TextureImporterFormat.RGB24:
+                case TextureImporterFormat.RGB16:
+                case TextureImporterFormat.BC6H:
+                case TextureImporterFormat.ETC_RGB4:
+                case TextureImporterFormat.ETC_RGB4Crunched:
+                case TextureImporterFormat.ETC2_RGB4:
+                case TextureImporterFormat.ETC2_RGB4_PUNCHTHROUGH_ALPHA:
+                case TextureImporterFormat.PVRTC_RGB2:
+                case TextureImporterFormat.PVRTC_RGB4:
+                    return 3;
+                default:
+                    return 4;
+            }
         }
 
         /// <summary>The smallest Max Size choice of the texture importer that holds pixels.</summary>
@@ -51,7 +118,25 @@ namespace DocMe.MaskPainter.Editor
         }
 
         /// <summary>
-        /// Reads a texture's red channel into a new canvas, as a shader sees it (an sRGB texture decoded). A PNG or JPG in
+        /// Whether Save can write the painting back into the texture's own file: a PNG in Assets imported as a plain
+        /// texture (a normal map, sprite or lightmap is never turned into a mask).
+        /// </summary>
+        public static bool CanWriteBack(Texture texture)
+        {
+            var path = AssetDatabase.GetAssetPath(texture);
+            return path.StartsWith("Assets/", StringComparison.Ordinal) && path.EndsWith(".png", StringComparison.OrdinalIgnoreCase)
+                && AssetImporter.GetAtPath(path) is TextureImporter importer && importer.textureType == TextureImporterType.Default && File.Exists(path);
+        }
+
+        /// <summary>Whether the file is imported as a colour (sRGB) texture now: saving a mask into it switches that off.</summary>
+        public static bool IsColour(string assetPath) => AssetImporter.GetAtPath(assetPath) is TextureImporter importer && importer.sRGBTexture;
+
+        /// <summary>The 2D texture in a material's slot, or null.</summary>
+        public static Texture2D TextureIn(Material material, string property) =>
+            material != null && material.HasProperty(property) ? material.GetTexture(property) as Texture2D : null;
+
+        /// <summary>
+        /// Reads every channel of a texture into a new canvas, as a shader sees it (an sRGB texture decoded). A PNG or JPG in
         /// the project is read from its file, at full size and without compression; anything else through the graphics
         /// card at its imported size, so no texture needs the Read/Write setting.
         /// </summary>
@@ -67,8 +152,7 @@ namespace DocMe.MaskPainter.Editor
                     if (file.LoadImage(File.ReadAllBytes(path)))
                     {
                         var canvas = MaskCanvas.From(file);
-                        if (AssetImporter.GetAtPath(path) is TextureImporter importer && importer.sRGBTexture)
-                            for (int i = 0; i < canvas.Values.Length; i++) canvas.Values[i] = Mathf.GammaToLinearSpace(canvas.Values[i]);
+                        if (AssetImporter.GetAtPath(path) is TextureImporter importer && importer.sRGBTexture) canvas.DecodeSrgb();
                         return canvas;
                     }
                 }

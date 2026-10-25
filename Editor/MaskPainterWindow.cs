@@ -22,6 +22,7 @@ namespace DocMe.MaskPainter.Editor
         static readonly int[] Sizes = { 512, 1024, 2048, 4096 };
         static string[] StartChoices => new[] { MaskText.T("start.black"), MaskText.T("start.white"), MaskText.T("start.texture") };
         static string[] ViewChoices => new[] { MaskText.T("show.overlay"), MaskText.T("show.mask"), MaskText.T("show.nothing") };
+        static string[] ChannelChoices => new[] { MaskText.T("channel.all"), MaskText.T("channel.red"), MaskText.T("channel.green"), MaskText.T("channel.blue"), MaskText.T("channel.alpha") };
         const float MinBrushCm = 0.5f, MaxBrushCm = 20f;
         const int MaxStartSize = 4096;
 
@@ -49,14 +50,14 @@ namespace DocMe.MaskPainter.Editor
         [NonSerialized] string builtLanguage;
 
         ObjectField meshField, textureField;
-        DropdownField materialField, uvField, startField, sizeField, viewField, languageField;
-        Button startButton, saveButton, saveAsButton, putButton, slotButton;
+        DropdownField materialField, uvField, startField, sizeField, viewField, languageField, channelField;
+        Button startButton, saveButton, saveAsButton, putButton, slotButton, fromSlotButton;
         Button[] toolButtons;
         Slider brushField, softnessField, strengthField;
         Toggle mirrorField;
-        Label meshInfo, hint, clothesHint, savedLabel, statusLabel;
+        Label meshInfo, hint, clothesHint, channelHint, savedLabel, statusLabel;
         HelpBox meshWarning, materialWarning;
-        VisualElement paintSection, saveSection, slotPart;
+        VisualElement paintSection, saveSection, slotPart, fromSlotRow;
 
         [MenuItem("Tools/DocMe/Mask Painter")]
         public static void Open()
@@ -93,15 +94,49 @@ namespace DocMe.MaskPainter.Editor
         /// <summary>Saves a painting for the quit prompt: into its PNG, or asking where. False when the user cancels.</summary>
         internal static bool SaveForQuit(MaskSession painting)
         {
-            if (painting.SavedPath != null)
+            if (painting.SavedPath != null && painting.ReplacesStart)
             {
-                painting.Save(painting.SavedPath);
-                return true;
+                int answer = AskReplace(painting.SavedPath);
+                if (answer == 1) return false;
+                if (answer == 0) return SaveOrSay(painting, painting.SavedPath);
             }
+            else if (painting.SavedPath != null) return SaveOrSay(painting, painting.SavedPath);
             var path = EditorUtility.SaveFilePanelInProject(MaskText.T("dialog.save.title"), DefaultName(painting), "png", MaskText.T("dialog.save.message"), DefaultFolder(painting));
             if (string.IsNullOrEmpty(path)) return false;
-            painting.Save(path);
-            return true;
+            return SaveOrSay(painting, path);
+        }
+
+        /// <summary>Asks before the first save writes over the file a painting started from: 0 replace, 1 cancel, 2 save as a new file.</summary>
+        static int AskReplace(string path)
+        {
+            var message = MaskText.T("dialog.replace.message", path);
+            if (MaskFile.IsColour(path)) message += "\n\n" + MaskText.T("dialog.replace.colour");
+            return EditorUtility.DisplayDialogComplex(MaskText.T("dialog.replace.title"), message,
+                MaskText.T("dialog.replace.ok"), MaskText.T("dialog.cancel"), MaskText.T("dialog.replace.new"));
+        }
+
+        /// <summary>Saves, or says why the file could not be written (read only, locked by another program). False then.</summary>
+        static bool TrySave(MaskSession painting, string path, out string error)
+        {
+            error = null;
+            try
+            {
+                painting.Save(path);
+                return true;
+            }
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+            {
+                error = MaskText.T("status.savefailed", path, e.Message);
+                return false;
+            }
+        }
+
+        /// <summary>The quit prompt's save: a file that cannot be written keeps Unity open and says why.</summary>
+        static bool SaveOrSay(MaskSession painting, string path)
+        {
+            if (TrySave(painting, path, out var error)) return true;
+            EditorUtility.DisplayDialog(MaskText.T("window.title"), error, MaskText.T("dialog.ok"));
+            return false;
         }
 
         void UpdateTitle()
@@ -138,6 +173,7 @@ namespace DocMe.MaskPainter.Editor
             {
                 target = e.newValue as Renderer;
                 materialIndex = 0;
+                slot = null;
                 Refresh();
             });
             root.Add(meshField);
@@ -145,6 +181,7 @@ namespace DocMe.MaskPainter.Editor
             materialField.RegisterValueChangedCallback(_ =>
             {
                 materialIndex = Mathf.Max(0, materialField.index);
+                slot = null;
                 Refresh();
             });
             root.Add(materialField);
@@ -169,6 +206,10 @@ namespace DocMe.MaskPainter.Editor
                 Refresh();
             });
             root.Add(textureField);
+            fromSlotRow = Row("", "", out var fromSlotBox);
+            fromSlotButton = Button(MaskText.T("button.fromslot"), MaskText.T("button.fromslot.tip"), PickStartSlot);
+            fromSlotBox.Add(fromSlotButton);
+            root.Add(fromSlotRow);
             sizeField = new DropdownField(MaskText.T("field.size"), Sizes.Select(s => s + " x " + s).ToList(), 1) { tooltip = MaskText.T("field.size.tip") };
             sizeField.RegisterValueChangedCallback(_ =>
             {
@@ -187,6 +228,18 @@ namespace DocMe.MaskPainter.Editor
             paintSection = new VisualElement();
             root.Add(paintSection);
             paintSection.Add(Section(MaskText.T("section.paint")));
+            channelField = new DropdownField(MaskText.T("field.channel"), ChannelChoices.ToList(), 0) { tooltip = MaskText.T("field.channel.tip") };
+            channelField.RegisterValueChangedCallback(_ =>
+            {
+                if (session == null || !session.IsLive) return;
+                ReleaseMouse();
+                session.SelectChannel((MaskChannel)Mathf.Max(0, channelField.index));
+                Refresh();
+                SceneView.RepaintAll();
+            });
+            paintSection.Add(channelField);
+            channelHint = Hint("");
+            paintSection.Add(channelHint);
             var toolRow = Row(MaskText.T("row.tool"), MaskText.T("row.tool.tip"), out var toolBox);
             toolButtons = new[]
             {
@@ -304,6 +357,7 @@ namespace DocMe.MaskPainter.Editor
             int sizeIndex = Array.IndexOf(Sizes, size);
             sizeField.SetValueWithoutNotify(sizeField.choices[sizeIndex < 0 ? 1 : sizeIndex]);
             Show(textureField, start == MaskStart.Texture);
+            Show(fromSlotRow, start == MaskStart.Texture && StartMaterial() != null);
             Show(sizeField, start != MaskStart.Texture);
 
             var problem = MeshProblem();
@@ -319,6 +373,10 @@ namespace DocMe.MaskPainter.Editor
             Show(paintSection, live);
             if (live)
             {
+                var channel = session.Channel;
+                channelField.SetValueWithoutNotify(ChannelChoices[(int)channel]);
+                channelHint.text = channel == MaskChannel.All ? "" : MaskText.T("hint.channel", ChannelChoices[(int)channel]);
+                Show(channelHint, channel != MaskChannel.All);
                 for (int i = 0; i < toolButtons.Length; i++) toolButtons[i].EnableInClassList("docme-mp__choice--on", (int)tool == i);
                 brushField.SetValueWithoutNotify(brushCm);
                 softnessField.SetValueWithoutNotify(softness);
@@ -342,7 +400,9 @@ namespace DocMe.MaskPainter.Editor
         void RefreshSave(bool live)
         {
             var path = session.SavedPath;
-            savedLabel.text = path == null ? MaskText.T("saved.none") : MaskText.T(session.Unsaved ? "saved.unsaved" : "saved.saved", path);
+            savedLabel.text = path == null ? MaskText.T("saved.none")
+                : session.ReplacesStart ? MaskText.T("saved.opened", path)
+                : MaskText.T(session.Unsaved ? "saved.unsaved" : "saved.saved", path);
             Show(saveButton, path != null);
             saveButton.SetEnabled(session.Unsaved);
 
@@ -400,6 +460,32 @@ namespace DocMe.MaskPainter.Editor
         }
 
         Material CurrentMaterial() => session != null ? session.Material : null;
+
+        /// <summary>The material picked above, before a painting starts.</summary>
+        Material StartMaterial()
+        {
+            var materials = target != null ? target.sharedMaterials : null;
+            return materials != null && materialIndex < materials.Length ? materials[materialIndex] : null;
+        }
+
+        /// <summary>Starts from the texture in one of the material's slots, and keeps that slot for Put into material.</summary>
+        void PickStartSlot()
+        {
+            var material = StartMaterial();
+            if (material == null) return;
+            new MaskSlotPicker(material, picked =>
+            {
+                if (this == null) return;
+                var texture = MaskFile.TextureIn(material, picked);
+                status = texture == null ? MaskText.T("status.slotempty", MaskFile.SlotLabel(material, picked)) : null;
+                if (texture != null)
+                {
+                    startTexture = texture;
+                    slot = picked;
+                }
+                Refresh();
+            }).Show(fromSlotButton.worldBound);
+        }
 
         void PickSlot()
         {
@@ -464,10 +550,21 @@ namespace DocMe.MaskPainter.Editor
         {
             if (session == null || !session.HasPainting) return false;
             if (session.SavedPath == null) return SaveAs();
-            session.Save(session.SavedPath);
-            status = MaskText.T("status.saved", session.SavedPath);
+            if (session.ReplacesStart)
+            {
+                int answer = AskReplace(session.SavedPath);
+                if (answer == 1) return false;
+                if (answer == 2) return SaveAs();
+            }
+            return SaveTo(session.SavedPath);
+        }
+
+        bool SaveTo(string path)
+        {
+            bool saved = TrySave(session, path, out var error);
+            status = saved ? MaskText.T("status.saved", path) : error;
             Refresh();
-            return true;
+            return saved;
         }
 
         bool SaveAs()
@@ -475,13 +572,11 @@ namespace DocMe.MaskPainter.Editor
             if (session == null || !session.HasPainting) return false;
             var current = session.SavedPath;
             var folder = current != null ? Path.GetDirectoryName(current).Replace('\\', '/') : DefaultFolder(session);
-            var name = current != null ? Path.GetFileNameWithoutExtension(current) : DefaultName(session);
+            // The file it started from is offered by its folder only: a new file was asked for.
+            var name = current != null && !session.ReplacesStart ? Path.GetFileNameWithoutExtension(current) : DefaultName(session);
             var path = EditorUtility.SaveFilePanelInProject(MaskText.T("dialog.save.title"), name, "png", MaskText.T("dialog.save.message"), folder);
             if (string.IsNullOrEmpty(path)) return false;
-            session.Save(path);
-            status = MaskText.T("status.saved", path);
-            Refresh();
-            return true;
+            return SaveTo(path);
         }
 
         static string DefaultName(MaskSession painting) => painting.Renderer != null ? painting.Renderer.name + " Mask" : "Mask";
@@ -517,6 +612,7 @@ namespace DocMe.MaskPainter.Editor
             if (session == null || !session.IsLive) return;
             session.FollowUndo();
             AfterPaint();
+            Refresh();
         }
 
         void ReleaseMouse()

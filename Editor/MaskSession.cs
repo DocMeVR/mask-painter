@@ -48,6 +48,9 @@ namespace DocMe.MaskPainter.Editor
         public MaskMesh Mesh => mesh;
         public string SavedPath => data != null && !string.IsNullOrEmpty(data.SavedPath) ? data.SavedPath : null;
         public bool Unsaved => data != null && data.Unsaved;
+        /// <summary>SavedPath is the PNG the painting started from and has not been written yet.</summary>
+        public bool ReplacesStart => data != null && data.ReplacesStart && SavedPath != null;
+        public MaskChannel Channel => Canvas != null ? Canvas.Channel : MaskChannel.All;
         /// <summary>Whether there is a painting at all, even while its mesh is gone.</summary>
         public bool HasPainting => Canvas != null && Canvas.Values != null && Canvas.Values.Length > 0;
         public bool IsLive => mesh != null && HasPainting && Renderer != null;
@@ -65,7 +68,8 @@ namespace DocMe.MaskPainter.Editor
 
         /// <summary>
         /// A new mask for one material of renderer, laid out on its UV channel. Null when the renderer has no mesh. A
-        /// start texture is read, never written: the first save always asks where to.
+        /// start texture that is a PNG in Assets becomes the file Save writes, once the window has asked; any other is
+        /// only read, and the first save asks where to.
         /// </summary>
         public static MaskSession Start(Renderer renderer, int uvChannel, int materialIndex, int size, MaskStart start, Texture from)
         {
@@ -81,6 +85,11 @@ namespace DocMe.MaskPainter.Editor
             data.UndoMarker = ScriptableObject.CreateInstance<MaskPainterUndo>();
             data.UndoMarker.hideFlags = HideFlags.HideAndDontSave;
             data.Started = DateTime.UtcNow.Ticks;
+            if (start == MaskStart.Texture && from != null && MaskFile.CanWriteBack(from))
+            {
+                data.SavedPath = AssetDatabase.GetAssetPath(from);
+                data.ReplacesStart = true;
+            }
             var session = new MaskSession { data = data };
             session.Attach(mesh);
             return session;
@@ -121,6 +130,7 @@ namespace DocMe.MaskPainter.Editor
         {
             mesh = fresh;
             bakedAt = Renderer.transform.localToWorldMatrix;
+            Canvas.EnsurePixels();
             Canvas.Bind(mesh);
             int id = data.GetInstanceID();
             if (!Histories.TryGetValue(id, out history))
@@ -324,6 +334,14 @@ namespace DocMe.MaskPainter.Editor
 
         void Record(string name, float[] before) => Record(name, new RectInt(0, 0, Canvas.Width, Canvas.Height), before);
 
+        /// <summary>Shows and paints another channel from now on; a stroke being painted is kept as a step first.</summary>
+        public void SelectChannel(MaskChannel channel)
+        {
+            if (!HasPainting || Canvas.Channel == channel) return;
+            if (IsStroking) EndStroke();
+            Canvas.SelectChannel(channel);
+        }
+
         void Record(string name, RectInt area, float[] before)
         {
             Undo.RecordObject(data.UndoMarker, name);
@@ -407,6 +425,7 @@ namespace DocMe.MaskPainter.Editor
         {
             var saved = MaskFile.Save(Canvas, assetPath);
             data.SavedPath = assetPath;
+            data.ReplacesStart = false;
             data.Unsaved = false;
             return saved;
         }
