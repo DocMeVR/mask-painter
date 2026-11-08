@@ -236,6 +236,7 @@ namespace DocMe.MaskPainter.Editor
         /// <param name="amount">How far the piece moves toward value: 1 sets it, below 1 builds up as a brush with that strength does.</param>
         public void FillPiece(MaskHit hit, float value, float amount = 1f)
         {
+            if (IsStroking) EndStroke();
             if (!IsValid(hit)) return;
             int island = IslandAt(hit);
             int other = MirroredHit(hit, out var mirrored) ? IslandAt(mirrored) : island;
@@ -259,6 +260,7 @@ namespace DocMe.MaskPainter.Editor
         public void EvenSeams()
         {
             if (!IsLive) return;
+            if (IsStroking) EndStroke();
             var before = Canvas.Snapshot();
             Canvas.EvenSeams(mesh.SeamEdges());
             Record(MaskText.T("undo.seams"), before);
@@ -268,6 +270,7 @@ namespace DocMe.MaskPainter.Editor
         public void CopyChannel(MaskChannel from)
         {
             if (!IsLive || from == MaskChannel.All || from == Canvas.Channel) return;
+            if (IsStroking) EndStroke();
             var before = Canvas.Snapshot();
             Canvas.CopyFrom(from);
             Record(MaskText.T("undo.copy"), before);
@@ -275,6 +278,7 @@ namespace DocMe.MaskPainter.Editor
 
         public void FillAll(float value)
         {
+            if (IsStroking) EndStroke();
             var before = Canvas.Snapshot();
             Canvas.Fill(value);
             Record(MaskText.T(value > 0.5f ? "undo.fillwhite" : "undo.fillblack"), before);
@@ -282,6 +286,7 @@ namespace DocMe.MaskPainter.Editor
 
         public void Invert()
         {
+            if (IsStroking) EndStroke();
             var before = Canvas.Snapshot();
             Canvas.Invert();
             Record(MaskText.T("undo.invert"), before);

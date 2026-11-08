@@ -63,8 +63,8 @@ namespace DocMe.MaskPainter.Editor
         [NonSerialized] int heldControl;
         [NonSerialized] string builtLanguage;
         [NonSerialized] bool textureUnused;
-        [NonSerialized] GameObject isolatedObject;
-        [NonSerialized] bool isolating;
+        [SerializeField] GameObject isolatedObject;
+        [SerializeField] bool isolating;
 
         ObjectField meshField, textureField;
         DropdownField materialField, uvField, sizeField;
@@ -302,7 +302,6 @@ namespace DocMe.MaskPainter.Editor
         {
             if (Active == this) Active = Resources.FindObjectsOfTypeAll<MaskPainterWindow>().FirstOrDefault(w => w != this);
             MaskShortcuts.Sync();
-            EndIsolation();
             SceneView.duringSceneGui -= OnSceneGUI;
             Undo.undoRedoPerformed -= OnUndoRedo;
             ReleaseMouse();
@@ -312,6 +311,8 @@ namespace DocMe.MaskPainter.Editor
             overlay = null;
             SceneView.RepaintAll();
         }
+
+        void OnDestroy() => EndIsolation();
 
         /// <summary>Saves a painting for the quit prompt: into its PNG, or asking where. False when the user cancels.</summary>
         internal static bool SaveForQuit(MaskSession painting)
@@ -672,6 +673,11 @@ namespace DocMe.MaskPainter.Editor
 
         public void SetTool(PaintTool value)
         {
+            if (session != null && session.IsStroking)
+            {
+                session.EndStroke();
+                AfterPaint();
+            }
             ReleaseMouse();
             tool = value;
             hoverValid = false;
