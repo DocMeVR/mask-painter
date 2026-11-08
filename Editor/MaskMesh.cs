@@ -87,41 +87,31 @@ namespace DocMe.MaskPainter.Editor
         }
 
         /// <summary>Reads the renderer's current pose and place again; the UVs and islands stay. False if its mesh changed.</summary>
-        public bool Rebake(Renderer renderer)
+        public bool Rebake(Renderer renderer) => Rebake(renderer, out _);
+
+        /// <param name="moved">Whether any corner is somewhere else now; the triangle index is kept when none is.</param>
+        public bool Rebake(Renderer renderer, out bool moved)
         {
+            moved = false;
             var source = SourceMesh(renderer);
             if (source == null || source.vertexCount != Positions.Length) return false;
-            Positions = WorldPositions(renderer);
-            triangleMin = null;
-            triangleMax = null;
+            var fresh = WorldPositions(renderer);
+            for (int i = 0; i < fresh.Length && !moved; i++) moved = fresh[i] != Positions[i];
+            if (moved) Positions = fresh;
             return true;
         }
 
-        Vector3[] triangleMin;
-        Vector3[] triangleMax;
+        MaskTriangleIndex index;
+        readonly List<int> nearby = new List<int>();
+
+        MaskTriangleIndex Index => index != null && index.Source == Positions ? index : index = new MaskTriangleIndex(Positions, Triangles);
 
         /// <summary>Whether triangle t's bounding box comes within distance of point.</summary>
-        public bool TriangleNear(int t, Vector3 point, float distance)
-        {
-            if (triangleMin == null)
-            {
-                triangleMin = new Vector3[TriangleCount];
-                triangleMax = new Vector3[TriangleCount];
-                for (int k = 0; k < TriangleCount; k++)
-                {
-                    var a = Positions[Triangles[3 * k]];
-                    var b = Positions[Triangles[3 * k + 1]];
-                    var c = Positions[Triangles[3 * k + 2]];
-                    triangleMin[k] = Vector3.Min(a, Vector3.Min(b, c));
-                    triangleMax[k] = Vector3.Max(a, Vector3.Max(b, c));
-                }
-            }
-            var min = triangleMin[t];
-            var max = triangleMax[t];
-            return point.x >= min.x - distance && point.x <= max.x + distance
-                && point.y >= min.y - distance && point.y <= max.y + distance
-                && point.z >= min.z - distance && point.z <= max.z + distance;
-        }
+        public bool TriangleNear(int t, Vector3 point, float distance) =>
+            MaskTriangleIndex.Within(Index.TriangleMin[t], Index.TriangleMax[t], point, distance);
+
+        /// <summary>The triangles whose bounding boxes come within distance of point (TriangleNear), in index order.</summary>
+        public void TrianglesNear(Vector3 point, float distance, List<int> into) => Index.Near(point, distance, into);
 
         public Vector3 NormalAt(MaskHit hit) => FaceNormal(hit.Triangle).normalized;
 
@@ -234,32 +224,9 @@ namespace DocMe.MaskPainter.Editor
         public bool Raycast(Ray ray, out MaskHit hit)
         {
             hit = default;
-            hit.Distance = float.MaxValue;
-            hit.Triangle = -1;
-            for (int t = 0; t < TriangleCount; t++)
-            {
-                var a = Positions[Triangles[3 * t]];
-                var b = Positions[Triangles[3 * t + 1]];
-                var c = Positions[Triangles[3 * t + 2]];
-                var e1 = b - a;
-                var e2 = c - a;
-                var p = Vector3.Cross(ray.direction, e2);
-                float det = Vector3.Dot(e1, p);
-                if (Mathf.Abs(det) < 1e-12f) continue;
-                float inv = 1f / det;
-                var s = ray.origin - a;
-                float u = Vector3.Dot(s, p) * inv;
-                if (u < 0f || u > 1f) continue;
-                var q = Vector3.Cross(s, e1);
-                float v = Vector3.Dot(ray.direction, q) * inv;
-                if (v < 0f || u + v > 1f) continue;
-                float d = Vector3.Dot(e2, q) * inv;
-                if (d <= 0f || d >= hit.Distance) continue;
-                hit.Distance = d;
-                hit.Triangle = t;
-                hit.Barycentric = new Vector3(1f - u - v, u, v);
-            }
+            hit.Triangle = Index.Raycast(Positions, ray.origin, ray.direction, out hit.Distance, out float u, out float v);
             if (hit.Triangle < 0) return false;
+            hit.Barycentric = new Vector3(1f - u - v, u, v);
             hit.Point = ray.GetPoint(hit.Distance);
             return true;
         }
@@ -292,9 +259,9 @@ namespace DocMe.MaskPainter.Editor
             float best = reach;
             var origin = point + normal * reach;
             var direction = -normal;
-            for (int t = 0; t < TriangleCount; t++)
+            TrianglesNear(point, reach, nearby);
+            foreach (int t in nearby)
             {
-                if (!TriangleNear(t, point, reach)) continue;
                 if (Vector3.Dot(FaceNormal(t).normalized, normal) < 0.5f) continue;
                 var a = Positions[Triangles[3 * t]];
                 var e1 = Positions[Triangles[3 * t + 1]] - a;

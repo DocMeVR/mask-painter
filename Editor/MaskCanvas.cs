@@ -509,12 +509,8 @@ namespace DocMe.MaskPainter.Editor
             var middle = (pathMin + pathMax) * 0.5f;
             float reach = radius + (pathMax - pathMin).magnitude * 0.5f;
             var near = new List<int>();
-            for (int t = 0; t < mesh.TriangleCount; t++)
-            {
-                if (!mesh.TriangleNear(t, middle, reach)) continue;
-                if (facing != Vector3.zero && Vector3.Dot(mesh.FaceNormal(t), facing) < 0f) continue;
-                near.Add(t);
-            }
+            mesh.TrianglesNear(middle, reach, near);
+            if (facing != Vector3.zero) near.RemoveAll(t => Vector3.Dot(mesh.FaceNormal(t), facing) < 0f);
             if (near.Count == 0) return false;
 
             float inner = radius * (1f - Mathf.Clamp01(softness));

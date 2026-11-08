@@ -186,7 +186,7 @@ namespace DocMe.MaskPainter.Editor
             var now = Renderer.transform.localToWorldMatrix;
             if (!force && now == bakedAt) return;
             bakedAt = now;
-            if (!mesh.Rebake(Renderer))
+            if (!mesh.Rebake(Renderer, out bool moved))
             {
                 // The mesh itself changed (a different mesh was put in): start over on it, keeping the values.
                 var fresh = MaskMesh.From(Renderer, UvChannel, MaterialIndex);
@@ -194,6 +194,7 @@ namespace DocMe.MaskPainter.Editor
                 return;
             }
             // Only the positions moved: the pieces and the texels they cover stay.
+            if (!moved) return;
             preview.vertices = mesh.Positions;
             preview.RecalculateBounds();
         }
