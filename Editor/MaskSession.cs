@@ -296,8 +296,8 @@ namespace DocMe.MaskPainter.Editor
                 lastDab = hit.Point;
                 Canvas.Brush(hit.Point, strokeRadius, strokeSoftness, strokeValue, strokeStrength, strokeFacing);
             }
-            else if (DabsTo(ref lastDab, hit.Point, out var dabs))
-                Canvas.BrushPath(dabs, strokeRadius, strokeSoftness, strokeValue, strokeStrength, strokeFacing);
+            else if (SegmentTo(ref lastDab, hit.Point, out var segment))
+                Canvas.BrushPath(segment, strokeRadius, strokeSoftness, strokeValue, strokeStrength, strokeFacing);
             MirrorStroke(hit, jump);
         }
 
@@ -315,21 +315,17 @@ namespace DocMe.MaskPainter.Editor
                 lastMirrorDab = mirrored.Point;
                 Canvas.Brush(mirrored.Point, strokeRadius, strokeSoftness, strokeValue, strokeStrength, facing);
             }
-            else if (DabsTo(ref lastMirrorDab, mirrored.Point, out var dabs))
-                Canvas.BrushPath(dabs, strokeRadius, strokeSoftness, strokeValue, strokeStrength, facing);
+            else if (SegmentTo(ref lastMirrorDab, mirrored.Point, out var segment))
+                Canvas.BrushPath(segment, strokeRadius, strokeSoftness, strokeValue, strokeStrength, facing);
             mirrorStroking = true;
         }
 
-        /// <summary>The dabs from last to to, one every fifth of the brush size; false while to is still closer than that.</summary>
-        bool DabsTo(ref Vector3 last, Vector3 to, out Vector3[] dabs)
+        /// <summary>The piece of the stroke from last to to; false while to is still within a twentieth of the brush size.</summary>
+        bool SegmentTo(ref Vector3 last, Vector3 to, out Vector3[] segment)
         {
-            dabs = null;
-            float spacing = Mathf.Max(strokeRadius * 0.2f, 1e-4f);
-            float distance = Vector3.Distance(last, to);
-            if (distance < spacing) return false;
-            int steps = Mathf.Min(Mathf.CeilToInt(distance / spacing), 64);
-            dabs = new Vector3[steps];
-            for (int i = 1; i <= steps; i++) dabs[i - 1] = Vector3.Lerp(last, to, i / (float)steps);
+            segment = null;
+            if (Vector3.Distance(last, to) < Mathf.Max(strokeRadius * 0.05f, 1e-5f)) return false;
+            segment = new[] { last, to };
             last = to;
             return true;
         }

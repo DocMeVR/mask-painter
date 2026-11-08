@@ -341,7 +341,10 @@ namespace DocMe.MaskPainter.Editor
             BrushPath(new[] { centre }, radius, softness, value, strength, facing);
         }
 
-        /// <summary>Brush at each centre in turn, finding the triangles near the whole path once.</summary>
+        /// <summary>
+        /// Brush along the line through centres: each texel's weight comes from its distance to the nearest piece of the
+        /// line, so a stroke is even along its length instead of a row of round dabs.
+        /// </summary>
         public void BrushPath(IReadOnlyList<Vector3> centres, float radius, float softness, float value, float strength = 1f, Vector3 facing = default)
         {
             if (centres.Count == 0) return;
@@ -367,17 +370,15 @@ namespace DocMe.MaskPainter.Editor
             int minX = Width, minY = Height, maxX = -1, maxY = -1;
             var p = mesh.Positions;
             var tri = mesh.Triangles;
-            foreach (var centre in centres)
-                foreach (int t in near)
+            foreach (int t in near)
                 {
-                    if (!mesh.TriangleNear(t, centre, radius)) continue;
                     var a = p[tri[3 * t]];
                     var b = p[tri[3 * t + 1]];
                     var c = p[tri[3 * t + 2]];
                     Rasterise(t, (x, y, w) =>
                     {
                         var position = a * w.x + b * w.y + c * w.z;
-                        float d = Vector3.Distance(position, centre);
+                        float d = DistanceToPath(position, centres);
                         if (d >= radius) return;
                         float weight = d <= inner ? 1f : 1f - Mathf.SmoothStep(0f, 1f, (d - inner) / Mathf.Max(radius - inner, 1e-6f));
                         int i = y * Width + x;
@@ -398,6 +399,22 @@ namespace DocMe.MaskPainter.Editor
             var painted = new RectInt(minX, minY, maxX - minX + 1, maxY - minY + 1);
             BleedIntoGaps(painted);
             MarkChanged(Grow(painted, Bleed));
+        }
+
+        /// <summary>The distance from point to the nearest piece of the line through path (to the point itself when it is one).</summary>
+        static float DistanceToPath(Vector3 point, IReadOnlyList<Vector3> path)
+        {
+            if (path.Count == 1) return Vector3.Distance(point, path[0]);
+            float best = float.MaxValue;
+            for (int k = 0; k + 1 < path.Count; k++)
+            {
+                var a = path[k];
+                var ab = path[k + 1] - a;
+                float length = ab.sqrMagnitude;
+                float t = length > 1e-12f ? Mathf.Clamp01(Vector3.Dot(point - a, ab) / length) : 0f;
+                best = Mathf.Min(best, Vector3.Distance(point, a + ab * t));
+            }
+            return best;
         }
 
         /// <summary>
