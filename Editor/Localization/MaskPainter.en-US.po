@@ -36,26 +36,17 @@ msgstr "UV map"
 msgid "field.uv.tip"
 msgstr "Which of the mesh's UV maps the mask follows: most Poiyomi masks use UV0."
 
-msgid "field.start"
-msgstr "Start with"
-
-msgid "field.start.tip"
-msgstr "What the new mask is before you paint on it."
-
 msgid "start.black"
 msgstr "Black"
 
 msgid "start.white"
 msgstr "White"
 
-msgid "start.texture"
-msgstr "A texture"
-
 msgid "field.texture"
 msgstr "Texture"
 
 msgid "field.texture.tip"
-msgstr "An existing mask to keep painting on, with its size and every channel kept."
+msgstr "A texture to keep painting on; the tool finds the mesh and material that use it."
 
 msgid "field.size"
 msgstr "Size"
@@ -70,7 +61,7 @@ msgid "button.startover"
 msgstr "Start over"
 
 msgid "button.start.tip"
-msgstr "Starts a new mask with these settings; the mesh and its materials stay as they are."
+msgstr "Starts a new mask with these settings."
 
 msgid "material.empty"
 msgstr "(empty)"
@@ -316,10 +307,10 @@ msgid "field.language.tip"
 msgstr "The language of this window. Modular Avatar and other tools that use NDMF share this choice."
 
 msgid "button.fromslot"
-msgstr "Take it from the material"
+msgstr "From the material"
 
 msgid "button.fromslot.tip"
-msgstr "Starts from the texture in one of the material's slots, and puts the mask back into that slot later."
+msgstr "Opens the texture in one of the material's slots and remembers the slot for Put into material."
 
 msgid "status.slotempty"
 msgstr "{0} holds no texture to start from."
@@ -398,3 +389,39 @@ msgstr "Grey level"
 
 msgid "field.level.tip"
 msgstr "The grey a fill or stroke paints, from 0 for black to 1 for white."
+
+msgid "section.texture"
+msgstr "Texture"
+
+msgid "section.painting"
+msgstr "Painting"
+
+msgid "hint.texture.empty"
+msgstr "None (a new mask)"
+
+msgid "row.newmask"
+msgstr "New mask"
+
+msgid "row.newmask.tip"
+msgstr "What a new mask is before you paint on it."
+
+msgid "start.black.tip"
+msgstr "The new mask starts black, so the effect shows nowhere until you paint."
+
+msgid "start.white.tip"
+msgstr "The new mask starts white, so the effect shows everywhere until you paint black."
+
+msgid "button.paintthis"
+msgstr "Paint this texture"
+
+msgid "button.paintthis.tip"
+msgstr "Opens the texture with its size and every channel, ready to paint."
+
+msgid "note.texture.writeback"
+msgstr "Save writes back into this file after asking."
+
+msgid "note.texture.readonly"
+msgstr "This file is only read. The first save asks where the mask goes."
+
+msgid "note.texture.nouser"
+msgstr "No material in the open scenes uses this texture. Pick the mesh and material it is for."

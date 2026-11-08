@@ -23,7 +23,6 @@ namespace DocMe.MaskPainter.Editor
         static readonly int ControlHint = "DocMeMaskPainter".GetHashCode();
         static readonly string[] UvChoices = { "UV0", "UV1", "UV2", "UV3" };
         static readonly int[] Sizes = { 512, 1024, 2048, 4096 };
-        static string[] StartChoices => new[] { MaskText.T("start.black"), MaskText.T("start.white"), MaskText.T("start.texture") };
         public const float MinBrushCm = 0.5f, MaxBrushCm = 20f;
         const int MaxStartSize = 4096;
 
@@ -50,18 +49,44 @@ namespace DocMe.MaskPainter.Editor
         [NonSerialized] bool dragMissed;
         [NonSerialized] int heldControl;
         [NonSerialized] string builtLanguage;
+        [NonSerialized] bool textureUnused;
 
         ObjectField meshField, textureField;
-        DropdownField materialField, uvField, startField, sizeField;
+        DropdownField materialField, uvField, sizeField;
         Button startButton, saveButton, saveAsButton, putButton, slotButton, fromSlotButton;
-        Label meshInfo, paintNote, clothesHint, savedLabel, statusLabel;
-        VisualElement meshWarning, materialWarning;
-        VisualElement saveSection, slotPart, fromSlotRow;
+        Button[] newMaskItems;
+        Label meshInfo, paintNote, clothesHint, savedLabel, statusLabel, textureNote;
+        VisualElement meshWarning, materialWarning, textureMessage;
+        VisualElement saveSection, slotPart, fromSlotRow, newMaskPart, paintingSection;
 
         /// <summary>The open window the Scene view panel works with (the last one opened).</summary>
         public static MaskPainterWindow Active { get; private set; }
 
         public bool IsPainting => session != null && session.IsLive;
+        public MaskSession Session => session;
+        public Renderer Target => target;
+        /// <summary>The material slot Put into material fills, or null while none is picked.</summary>
+        public string Slot => slot;
+
+        /// <summary>
+        /// Puts texture in the Texture field and picks the mesh, material and slot that use it. With start, painting
+        /// starts right away when a mesh is known.
+        /// </summary>
+        public void OpenTexture(Texture2D texture, bool start)
+        {
+            if (texture == null) return;
+            startTexture = texture;
+            status = null;
+            textureUnused = !MaskFind.User(texture, target, out var renderer, out int index, out string found);
+            if (!textureUnused)
+            {
+                target = renderer;
+                materialIndex = index;
+                slot = found;
+            }
+            Refresh();
+            if (start && MeshProblem() == null) StartPainting();
+        }
         public MaskChannel Channel => session != null ? session.Channel : MaskChannel.All;
         public PaintTool Tool => tool;
 
@@ -125,7 +150,19 @@ namespace DocMe.MaskPainter.Editor
         {
             var window = GetWindow<MaskPainterWindow>();
             window.Show();
+            if (!window.IsPainting && Selection.activeObject is Texture2D texture && EditorUtility.IsPersistent(texture)) window.OpenTexture(texture, false);
         }
+
+        [MenuItem("Assets/DocMe/Paint in Mask Painter", false, 2000)]
+        static void PaintSelectedTexture()
+        {
+            var window = GetWindow<MaskPainterWindow>();
+            window.Show();
+            window.OpenTexture(Selection.activeObject as Texture2D, true);
+        }
+
+        [MenuItem("Assets/DocMe/Paint in Mask Painter", true)]
+        static bool CanPaintSelectedTexture() => Selection.activeObject is Texture2D;
 
         void OnEnable()
         {
@@ -229,7 +266,7 @@ namespace DocMe.MaskPainter.Editor
             root.Add(MaskUI.Note(MaskText.T("intro.text")));
 
             var setup = MaskUI.Card(root, MaskText.T("section.mesh"));
-            meshField =new ObjectField(MaskText.T("field.mesh")) { objectType = typeof(Renderer), allowSceneObjects = true, tooltip = MaskText.T("field.mesh.tip") };
+            meshField = new ObjectField(MaskText.T("field.mesh")) { objectType = typeof(Renderer), allowSceneObjects = true, tooltip = MaskText.T("field.mesh.tip") };
             meshField.RegisterValueChangedCallback(e =>
             {
                 target = e.newValue as Renderer;
@@ -253,41 +290,55 @@ namespace DocMe.MaskPainter.Editor
                 Refresh();
             });
             setup.Add(uvField);
-            startField = new DropdownField(MaskText.T("field.start"), StartChoices.ToList(), 0) { tooltip = MaskText.T("field.start.tip") };
-            startField.RegisterValueChangedCallback(_ =>
-            {
-                start = (MaskStart)Mathf.Max(0, startField.index);
-                Refresh();
-            });
-            setup.Add(startField);
+
+            var paintOn = MaskUI.Card(root, MaskText.T("section.texture"));
             textureField = new ObjectField(MaskText.T("field.texture")) { objectType = typeof(Texture2D), allowSceneObjects = false, tooltip = MaskText.T("field.texture.tip") };
+            MaskUI.EmptyHint(textureField, MaskText.T("hint.texture.empty"));
             textureField.RegisterValueChangedCallback(e =>
             {
-                startTexture = e.newValue as Texture2D;
-                Refresh();
+                if (e.newValue is Texture2D picked) OpenTexture(picked, false);
+                else
+                {
+                    startTexture = null;
+                    Refresh();
+                }
             });
-            setup.Add(textureField);
+            paintOn.Add(textureField);
             fromSlotButton = MaskUI.Button(MaskText.T("button.fromslot"), MaskText.T("button.fromslot.tip"), PickStartSlot);
             fromSlotRow = MaskUI.Row("", "", MaskUI.Wrap(fromSlotButton));
-            setup.Add(fromSlotRow);
+            paintOn.Add(fromSlotRow);
+            textureNote = MaskUI.Note("");
+            textureNote.AddToClassList("docme-indent");
+            paintOn.Add(textureNote);
+            newMaskPart = new VisualElement { name = "docme-mp-newmask" };
+            newMaskPart.Add(MaskUI.Row(MaskText.T("row.newmask"), MaskText.T("row.newmask.tip"), MaskUI.Segments(out newMaskItems,
+                (MaskText.T("start.black"), MaskText.T("start.black.tip"), () => SetNewMask(MaskStart.Black)),
+                (MaskText.T("start.white"), MaskText.T("start.white.tip"), () => SetNewMask(MaskStart.White)))));
             sizeField = new DropdownField(MaskText.T("field.size"), Sizes.Select(s => s + " x " + s).ToList(), 1) { tooltip = MaskText.T("field.size.tip") };
             sizeField.RegisterValueChangedCallback(_ =>
             {
                 size = Sizes[Mathf.Max(0, sizeField.index)];
                 Refresh();
             });
-            setup.Add(sizeField);
+            newMaskPart.Add(sizeField);
+            paintOn.Add(newMaskPart);
+            textureMessage = MaskUI.Message();
+            paintOn.Add(textureMessage);
             meshWarning = MaskUI.Message();
-            setup.Add(meshWarning);
+            paintOn.Add(meshWarning);
             startButton = MaskUI.Button(MaskText.T("button.start"), MaskText.T("button.start.tip"), StartPainting);
             startButton.AddToClassList("docme-primary");
-            setup.Add(startButton);
+            paintOn.Add(startButton);
+
+            paintingSection = new VisualElement();
+            root.Add(paintingSection);
+            var painting = MaskUI.Card(paintingSection, MaskText.T("section.painting"));
             meshInfo = MaskUI.Note("");
-            setup.Add(meshInfo);
+            painting.Add(meshInfo);
             paintNote = MaskUI.Note(MaskText.T("hint.panel"));
-            setup.Add(paintNote);
+            painting.Add(paintNote);
             clothesHint = MaskUI.Note(MaskText.T("hint.clothes"));
-            setup.Add(clothesHint);
+            painting.Add(clothesHint);
 
             saveSection = new VisualElement();
             root.Add(saveSection);
@@ -338,22 +389,26 @@ namespace DocMe.MaskPainter.Editor
             materialField.SetValueWithoutNotify(materialNames.Count > 0 ? materialNames[materialIndex] : "");
             MaskUI.Show(materialField, materialNames.Count > 0);
             uvField.SetValueWithoutNotify(UvChoices[Mathf.Clamp(uvChannel, 0, 3)]);
-            startField.SetValueWithoutNotify(StartChoices[(int)start]);
             textureField.SetValueWithoutNotify(startTexture);
+            textureField.EnableInClassList("docme-empty", startTexture == null);
             int sizeIndex = Array.IndexOf(Sizes, size);
             sizeField.SetValueWithoutNotify(sizeField.choices[sizeIndex < 0 ? 1 : sizeIndex]);
-            MaskUI.Show(textureField, start == MaskStart.Texture);
-            MaskUI.Show(fromSlotRow, start == MaskStart.Texture && StartMaterial() != null);
-            MaskUI.Show(sizeField, start != MaskStart.Texture);
+            MaskUI.Show(fromSlotRow, StartMaterial() != null);
+            MaskUI.Show(newMaskPart, startTexture == null);
+            MaskUI.Mark(newMaskItems, start == MaskStart.White ? 1 : 0);
+            textureNote.text = startTexture == null ? "" : MaskText.T(MaskFile.CanWriteBack(startTexture) ? "note.texture.writeback" : "note.texture.readonly");
+            MaskUI.Show(textureNote, startTexture != null);
+            MaskUI.SetMessage(textureMessage, startTexture != null && textureUnused ? MaskText.T("note.texture.nouser") : null, HelpBoxMessageType.Info);
 
             var problem = MeshProblem();
             MaskUI.SetMessage(meshWarning, problem, HelpBoxMessageType.Warning);
-            startButton.SetEnabled(problem == null && (start != MaskStart.Texture || startTexture != null));
-            startButton.text = MaskText.T(painting ? "button.startover" : "button.start");
+            startButton.SetEnabled(problem == null);
+            startButton.text = MaskText.T(painting ? "button.startover" : startTexture != null ? "button.paintthis" : "button.start");
+            startButton.tooltip = MaskText.T(startTexture != null ? "button.paintthis.tip" : "button.start.tip");
             meshInfo.text = live ? Describe(session)
                 : gone ? MaskText.T("mesh.gone")
                 : "";
-            MaskUI.Show(meshInfo, live || gone);
+            MaskUI.Show(paintingSection, live || gone);
             MaskUI.Show(paintNote, live);
             MaskUI.Show(clothesHint, live && tool != PaintTool.Off);
 
@@ -402,7 +457,7 @@ namespace DocMe.MaskPainter.Editor
             var uvs = new List<Vector2>();
             mesh.GetUVs(uvChannel, uvs);
             if (uvs.Count == 0) return MaskText.T("mesh.nouv", UvChoices[Mathf.Clamp(uvChannel, 0, 3)]);
-            if (start == MaskStart.Texture && startTexture != null && Mathf.Max(startTexture.width, startTexture.height) > MaxStartSize)
+            if (startTexture != null && Mathf.Max(startTexture.width, startTexture.height) > MaxStartSize)
                 return MaskText.T("mesh.toolarge", MaxStartSize);
             return null;
         }
@@ -447,6 +502,7 @@ namespace DocMe.MaskPainter.Editor
                 {
                     startTexture = texture;
                     slot = picked;
+                    textureUnused = false;
                 }
                 Refresh();
             }).Show(fromSlotButton.worldBound);
@@ -488,11 +544,18 @@ namespace DocMe.MaskPainter.Editor
             ReleaseMouse();
             session?.Dispose();
             hoverValid = false;
-            session = MaskSession.Start(target, uvChannel, materialIndex, size, start, start == MaskStart.Texture ? startTexture : null);
+            var from = startTexture != null ? MaskStart.Texture : start == MaskStart.White ? MaskStart.White : MaskStart.Black;
+            session = MaskSession.Start(target, uvChannel, materialIndex, size, from, startTexture);
             status = session == null ? MaskText.T("mesh.none") : null;
             if (tool == PaintTool.Off) tool = PaintTool.Fill;
             Refresh();
             SceneView.RepaintAll();
+        }
+
+        void SetNewMask(MaskStart value)
+        {
+            start = value;
+            Refresh();
         }
 
         public void SetTool(PaintTool value)

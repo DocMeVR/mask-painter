@@ -48,14 +48,6 @@ msgstr "UVマップ"
 msgid "field.uv.tip"
 msgstr "マスクが沿うUVマップです。Poiyomiのマスクはほとんどの場合UV0を使います。"
 
-#. en: Start with
-msgid "field.start"
-msgstr "開始時の内容"
-
-#. en: What the new mask is before you paint on it.
-msgid "field.start.tip"
-msgstr "塗り始める前の、新しいマスクの状態です。"
-
 #. en: Black
 msgid "start.black"
 msgstr "黒"
@@ -64,17 +56,13 @@ msgstr "黒"
 msgid "start.white"
 msgstr "白"
 
-#. en: A texture
-msgid "start.texture"
-msgstr "テクスチャ"
-
 #. en: Texture
 msgid "field.texture"
 msgstr "テクスチャ"
 
-#. en: An existing mask to keep painting on, with its size and every channel kept.
+#. en: A texture to keep painting on; the tool finds the mesh and material that use it.
 msgid "field.texture.tip"
-msgstr "続きを塗りたい既存のマスクで、サイズとすべてのチャンネルがそのまま引き継がれます。"
+msgstr "続きを塗るテクスチャです。使っているメッシュとマテリアルは自動で見つけます。"
 
 #. en: Size
 msgid "field.size"
@@ -92,9 +80,9 @@ msgstr "ペイントを始める"
 msgid "button.startover"
 msgstr "最初からやり直す"
 
-#. en: Starts a new mask with these settings; the mesh and its materials stay as they are.
+#. en: Starts a new mask with these settings.
 msgid "button.start.tip"
-msgstr "この設定で新しいマスクを作ります。メッシュとマテリアルは変わりません。"
+msgstr "この設定で新しいマスクを始めます。"
 
 #. en: (empty)
 msgid "material.empty"
@@ -420,13 +408,13 @@ msgstr "マスクを{0}に入れる"
 msgid "field.language.tip"
 msgstr "このウィンドウの表示言語です。Modular Avatar など NDMF を使うツールと同じ設定を共有します。"
 
-#. en: Take it from the material
+#. en: From the material
 msgid "button.fromslot"
-msgstr "マテリアルから取り込む"
+msgstr "マテリアルから"
 
-#. en: Starts from the texture in one of the material's slots, and puts the mask back into that slot later.
+#. en: Opens the texture in one of the material's slots and remembers the slot for Put into material.
 msgid "button.fromslot.tip"
-msgstr "マテリアルのスロットにあるテクスチャから始め、あとでマスクを同じスロットに戻します。"
+msgstr "マテリアルのスロットにあるテクスチャを開き、そのスロットを「マテリアルに入れる」用に覚えておきます。"
 
 #. en: {0} holds no texture to start from.
 msgid "status.slotempty"
@@ -531,3 +519,51 @@ msgstr "グレーの値"
 #. en: The grey a fill or stroke paints, from 0 for black to 1 for white.
 msgid "field.level.tip"
 msgstr "塗りつぶしやストロークで塗るグレーで、0 が黒、1 が白です。"
+
+#. en: Texture
+msgid "section.texture"
+msgstr "テクスチャ"
+
+#. en: Painting
+msgid "section.painting"
+msgstr "ペイント中"
+
+#. en: None (a new mask)
+msgid "hint.texture.empty"
+msgstr "なし（新しいマスク）"
+
+#. en: New mask
+msgid "row.newmask"
+msgstr "新しいマスク"
+
+#. en: What a new mask is before you paint on it.
+msgid "row.newmask.tip"
+msgstr "塗る前の新しいマスクの色です。"
+
+#. en: The new mask starts black, so the effect shows nowhere until you paint.
+msgid "start.black.tip"
+msgstr "黒から始めます。塗るまでエフェクトはどこにも出ません。"
+
+#. en: The new mask starts white, so the effect shows everywhere until you paint black.
+msgid "start.white.tip"
+msgstr "白から始めます。黒で塗るまでエフェクトは全体に出ます。"
+
+#. en: Paint this texture
+msgid "button.paintthis"
+msgstr "このテクスチャを塗る"
+
+#. en: Opens the texture with its size and every channel, ready to paint.
+msgid "button.paintthis.tip"
+msgstr "サイズと全チャンネルをそのままに開き、すぐ塗れる状態にします。"
+
+#. en: Save writes back into this file after asking.
+msgid "note.texture.writeback"
+msgstr "保存するとこのファイルに上書きします。その前に確認があります。"
+
+#. en: This file is only read. The first save asks where the mask goes.
+msgid "note.texture.readonly"
+msgstr "このファイルは読み込むだけです。最初の保存で保存先を選びます。"
+
+#. en: No material in the open scenes uses this texture. Pick the mesh and material it is for.
+msgid "note.texture.nouser"
+msgstr "開いているシーンに、このテクスチャを使うマテリアルがありません。使う予定のメッシュとマテリアルを選んでください。"

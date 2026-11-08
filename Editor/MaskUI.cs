@@ -105,6 +105,19 @@ namespace DocMe.MaskPainter.Editor
 
         public static void Show(VisualElement element, bool visible) => element.EnableInClassList("docme-hidden", !visible);
 
+        /// <summary>
+        /// A short hint shown in an empty object field instead of Unity's "None (Type)", which does not fit at 300 px; the
+        /// view toggles docme-empty on the field.
+        /// </summary>
+        public static void EmptyHint(UnityEditor.UIElements.ObjectField field, string text)
+        {
+            var hint = new Label(text) { pickingMode = PickingMode.Ignore };
+            hint.AddToClassList("docme-empty-hint");
+            field.Q(className: "unity-object-field-display")?.Add(hint);
+            field.RegisterValueChangedCallback(e => field.EnableInClassList("docme-empty", e.newValue == null));
+            field.EnableInClassList("docme-empty", field.value == null);
+        }
+
         /// <summary>A section's header and the card under it; returns the card.</summary>
         public static VisualElement Card(VisualElement parent, string title)
         {
@@ -142,8 +155,8 @@ namespace DocMe.MaskPainter.Editor
             row.EnableInClassList("docme-message-warn", kind == HelpBoxMessageType.Warning);
             row.EnableInClassList("docme-message-error", kind == HelpBoxMessageType.Error);
             row.Q<Label>(className: "docme-message-text").text = text;
-            var icon = kind == HelpBoxMessageType.Error ? "console.erroricon.sml" : kind == HelpBoxMessageType.Warning ? "console.warnicon.sml" : "console.infoicon.sml";
-            row.Q<Image>(className: "docme-message-icon").image = EditorGUIUtility.IconContent(icon).image;
+            var icon = kind == HelpBoxMessageType.Error ? "error" : kind == HelpBoxMessageType.Warning ? "warn" : "info";
+            row.Q<Image>(className: "docme-message-icon").image = EditorGUIUtility.IconContent(string.Join(".", "console", icon + "icon", "sml")).image;
         }
     }
 }
