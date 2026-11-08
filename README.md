@@ -17,32 +17,47 @@ Optional, without the Creator Companion: download the `.unitypackage` from the [
 
 ## Use
 
-1. Open **Tools > DocMe > Mask Painter**. A selected mesh is already in **Mesh**; if not, drag one in from the Hierarchy (for example Body).
-2. Pick the **Material** the mask is for, what it should **Start with** and its **Size**, then press **Start painting**. To keep working on a mask the material already has, set **Start with** to **A texture** and press **Take it from the material**. Leave **UV map** on UV0 unless that material reads its mask from another UV map.
-3. The painting tools now show in the **Mask Painter** panel in the Scene view. With **Fill pieces** on, click a piece of the model to fill it white; Shift+click fills it black. With **Brush** on, drag to paint white and hold Shift to paint black. The green overlay shows the white parts. Tick **Mirror** to paint both sides at once.
-4. Press **Save as...** and pick where the PNG goes. The material's folder is offered first.
-5. Under **Save**, press the **Slot** button, type part of the slot's name (for example "emission"), pick it and press **Put into material**.
+1. Open **Tools > DocMe > Mask Painter**. A selected mesh is already in **Mesh**; if not, drag one in from the Hierarchy (for example Body). Pick the **Material** the mask is for. Leave **UV map** on UV0 unless that material reads its mask from another UV map.
+2. To keep painting a mask you already have, drag it into **Texture** or press **From the material**. The tool finds the mesh and material that use it. Or right-click the texture in the Project window and pick **DocMe > Paint in Mask Painter**. For a new mask, leave **Texture** empty and pick **New mask** (Black or White) and its **Size**.
+3. Press **Paint this texture** (or **Start painting** for a new mask). The painting tools show in the **Mask Painter** panel in the Scene view.
+4. Pick a tool at the top of the panel. **Fill pieces** fills the piece of the model you click, **Brush** paints where you drag, and **Smooth** softens an edge you drag over. Shift paints the other colour. Tick **Mirror** to paint both sides at once.
+5. Press **Save** (or **Save as...** for a new file). For a new mask, press the **Slot** button, type part of the slot's name (for example "emission"), pick it and press **Put into material**.
+
+## Shortcuts
+
+| Key | Does |
+|---|---|
+| B, G, S | Brush, Fill pieces, Smooth |
+| X | Swaps white and black |
+| Shift | Paints the other colour while held |
+| Ctrl+click | Picks the grey under the mouse |
+| [ and ], Ctrl+mouse wheel | Brush size |
+| Ctrl+Z, Ctrl+Y | Undo, redo |
+| Alt+drag | Turns the view while you paint |
+
+The letter keys work only while a painting is open and the Scene view has focus. Change them in **Edit > Shortcuts** under **Mask Painter**.
 
 ## Tips
 
-- Ctrl+Z undoes a fill, a brush stroke or a whole mask change, and Ctrl+Y redoes it.
-- Alt+drag still turns the Scene view while you paint. **Click does: Off** gives your clicks back to selecting objects.
-- The brush size is in centimetres on the model, and a stroke carries across UV seams. The [ and ] keys change the size. The brush paints only the side you aim at, so a stroke on the palm leaves the back of the hand alone.
-- **Paint: Add** moves the mask toward white (black with Shift) by **Strength**, so low values build up greys over several strokes. **Paint: Replace** paints one exact **Grey level**.
+- **Select** at the top of the panel gives your clicks back to selecting objects.
+- The brush size is in centimetres on the model, and a stroke carries across UV seams. The brush paints only the side you aim at, so a stroke on the palm leaves the back of the hand alone.
+- With a drawing tablet, **Pen pressure** makes the brush smaller when you press lightly (**Size**, on by default) or paint less (**Strength**).
+- **Paint: Add** moves the mask toward the colour you paint by **Strength**, so low values build up greys over several strokes. **Paint: Replace** paints one exact **Grey level**.
+- **Paint into** picks the colour channel you paint: **All channels (grey)** for a plain mask, or **Red**, **Green**, **Blue** or **Alpha** alone. Each channel shows in its own colour. **Show: Every channel** shows red, green and blue together, handy for masks like Skin Touch's that use two channels. **Copy from...** copies another channel into the one you paint.
+- **UV seams: Even out** gives both sides of every UV seam the same value. Use it when a dent or an effect shows a thin line along a seam.
+- To paint under clothes, tick **Only this mesh**. It hides everything else in the Scene view until you untick it or close the window.
+- The window shows your mask on the UV map with each piece's outline, and a ring where the mouse is on the model.
 - The Scene view panel is hidden? Press the ` key in the Scene view and turn on **Mask Painter**.
-- **Show** switches the Scene view between the green **Overlay**, **Mask only** and **Nothing**.
-- To paint under clothes, hide them with the eye icon in the Hierarchy: that hides them only in the Scene view.
 - A piece is a part of the UV map that hangs together. UV seams split the model into pieces, which is why a click on the chest can fill the whole torso.
 - Only the part of the mesh drawn with the chosen material is painted.
-- To change a mask you made before, set **Start with** to **A texture** and pick it, or press **Take it from the material**. Every channel and its size are kept. A PNG in your project is saved back into itself: the first **Save** asks before it replaces the file, and offers a new file instead.
-- **Paint into** picks the colour channel you paint: **All channels (grey)** for a plain mask, or **Red**, **Green**, **Blue** or **Alpha** alone. The other channels stay as they are, the overlay shows the channel you paint, and Ctrl+Z switches back to the channel a step was painted in.
+- A PNG in your project is saved back into itself. The first **Save** asks before it replaces the file, and offers a new file instead. Every channel and its size are kept.
 - A locked Poiyomi material lists only the slots of features that are on. A mask put into a slot that was empty when the material was locked may only show after you unlock and lock the material again.
 - A material inside a model file (FBX) cannot keep changes. Extract it to its own file first.
 - Closing the window, maximizing the Scene view or a script reload keeps your painting. Unity asks you to save it when you quit.
 
 ## What it changes
 
-Nothing on your avatar changes while you paint: the overlay is drawn by the window, not by your materials. **Save as...** writes one PNG, imported as a linear (sRGB off), clamped texture at its full size with high quality compression, because a mask holds amounts rather than colours. A painted alpha is kept as an amount, never as see-through. If a platform has its own format that keeps fewer channels than you painted (red only, for example), that format is turned off so nothing you painted is lost. **Put into material** sets one texture slot of one material, and Ctrl+Z takes it out again.
+Nothing on your avatar changes while you paint. The overlay is drawn by the window, not by your materials. **Save** writes one PNG, imported as a linear (sRGB off), clamped texture at its full size, because a mask holds amounts rather than colours. On PC it gets the format that keeps what you painted with smooth gradients at the smallest size: BC4 when only red holds paint, BC5 for red and green, BC7 for anything else (a grey mask too). Quest and other platforms keep Unity's format, unless it would drop a channel you painted. A painted alpha is kept as an amount, never as see-through. **Put into material** sets one texture slot of one material, and Ctrl+Z takes it out again.
 
 ## How this was made
 
