@@ -148,3 +148,6 @@
 /* Tool choice: the first row of the Scene view panel, full width like a toolbar. */
 .docme-mp-tools { margin-bottom: 6px; }
 .docme-root .docme-mp-tools > .unity-button.docme-seg-item { padding: 2px 4px; }
+/* UV view: the mask as a square picture under the painting notes. */
+.docme-mp-uvview { margin: 4px 0 0 0; border-width: 1px; border-color: var(--docme-border); border-radius: 3px; overflow: hidden; }
+.docme-mp-uvimage { flex-grow: 1; }

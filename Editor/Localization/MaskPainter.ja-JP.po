@@ -699,3 +699,7 @@ msgstr "ほかのテクスチャ"
 #. en: empty
 msgid "picker.empty"
 msgstr "空"
+
+#. en: The mask on the UV map, with each piece's outline and a ring where the mouse is on the model.
+msgid "uvview.tip"
+msgstr "UVマップ上のマスクです。パーツの輪郭と、モデル上のマウス位置を示す輪が出ます。"

@@ -170,6 +170,9 @@ namespace DocMe.MaskPainter.Editor
             SceneView.RepaintAll();
         }
         public Renderer Target => target;
+
+        /// <summary>Where the mouse is on the UV map while it is over the painted part, or null.</summary>
+        public Vector2? HoverUv => IsPainting && hoverValid && session.IsValid(hover) ? session.Mesh.UvAt(hover) : (Vector2?)null;
         /// <summary>The material slot Put into material fills, or null while none is picked.</summary>
         public string Slot => slot;
 
@@ -457,6 +460,7 @@ namespace DocMe.MaskPainter.Editor
             painting.Add(paintNote);
             clothesHint = MaskUI.Note(MaskText.T("hint.clothes"));
             painting.Add(clothesHint);
+            painting.Add(new MaskUvView(() => this) { tooltip = MaskText.T("uvview.tip") });
 
             saveSection = new VisualElement();
             root.Add(saveSection);

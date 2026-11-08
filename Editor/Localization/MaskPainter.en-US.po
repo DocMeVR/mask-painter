@@ -524,3 +524,6 @@ msgstr "Other textures"
 
 msgid "picker.empty"
 msgstr "empty"
+
+msgid "uvview.tip"
+msgstr "The mask on the UV map, with each piece's outline and a ring where the mouse is on the model."

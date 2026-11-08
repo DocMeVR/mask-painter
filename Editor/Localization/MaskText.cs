@@ -194,6 +194,7 @@ namespace DocMe.MaskPainter.Editor
             "picker.masks",
             "picker.other",
             "picker.empty",
+            "uvview.tip",
         };
 
         public static string T(string key) => Find(key, MaskLanguage.Current);

@@ -446,6 +446,9 @@ namespace DocMe.MaskPainter.Editor
 
         public Mesh PreviewMesh => preview;
 
+        /// <summary>Counts uploads of the preview, so a view redraws only after a change.</summary>
+        public int PreviewVersion { get; private set; }
+
         void ReplacePreview()
         {
             if (preview != null) Object.DestroyImmediate(preview);
@@ -492,6 +495,7 @@ namespace DocMe.MaskPainter.Editor
                     else if (v != source[p]) pixels[p] = pixels[p + 1] = pixels[p + 2] = v;
                 }
             texture.Apply(false);
+            PreviewVersion++;
         }
 
         public Texture2D Save(string assetPath)

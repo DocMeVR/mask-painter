@@ -2,7 +2,9 @@
 // 3 for red, green, blue, alpha) in its tint, black parts slightly darkened. Every channel (_Every 1): red, green and blue
 // over the model as the colours they are. Mask only (_Mode 1): the painted channel's greys, unlit and opaque. The piece
 // under the mouse is lighter. Pass 0 draws parts that are covered (by clothes, say) faintly, so painting under clothes
-// stays visible; pass 1 draws the visible parts. Only the Mask Painter window draws it, never a material on the avatar.
+// stays visible; pass 1 draws the visible parts. Pass 2 draws the window's UV view: the mask as a flat picture with the
+// UV layout's lines (_Wire) and a ring at the mouse (_HoverUv). Only the Mask Painter window draws it, never a material
+// on the avatar.
 Shader "Hidden/DocMe/MaskPainter/Overlay"
 {
     Properties
@@ -14,6 +16,10 @@ Shader "Hidden/DocMe/MaskPainter/Overlay"
         _Mode ("Overlay or mask only", Float) = 0
         _Channel ("Painted channel", Float) = 0
         _Every ("Every channel", Float) = 0
+        _MainTex ("UV view source", 2D) = "black" {}
+        _Wire ("UV layout lines", 2D) = "black" {}
+        _HoverUv ("Mouse on the UV map", Vector) = (0, 0, 0, 0)
+        _ViewSize ("UV view size in pixels", Vector) = (512, 512, 0, 0)
     }
     SubShader
     {
@@ -29,6 +35,10 @@ Shader "Hidden/DocMe/MaskPainter/Overlay"
             float _Mode;
             float _Channel;
             float _Every;
+            sampler2D _MainTex;
+            sampler2D _Wire;
+            float4 _HoverUv;
+            float4 _ViewSize;
 
             // The mask's value as a grey the way an image viewer shows its PNG: in a linear project the Scene view's
             // target turns what is written into sRGB, so the value goes in as linear first.
@@ -111,6 +121,23 @@ Shader "Hidden/DocMe/MaskPainter/Overlay"
                 }
                 return float4(col, alpha);
             }
+            float4 fragView(v2f_img i) : SV_Target
+            {
+                float4 t = tex2D(_MainTex, i.uv);
+                float3 col = _Every > 0.5 ? t.rgb : Painted(t).xxx;
+                float3 tint = _Tint.rgb;
+            #if !defined(UNITY_COLORSPACE_GAMMA)
+                tint = LinearToGammaSpace(tint);
+            #endif
+                col = lerp(col, tint, tex2D(_Wire, i.uv).r * 0.75);
+                if (_HoverUv.z > 0.5)
+                {
+                    float d = length((i.uv - _HoverUv.xy) * _ViewSize.xy);
+                    col = lerp(col, 0.0, saturate(2.0 - abs(d - 6.0)));
+                    col = lerp(col, 1.0, saturate(1.2 - abs(d - 6.0)));
+                }
+                return float4(MaskGrey(col), 1.0);
+            }
         ENDCG
 
         Pass
@@ -137,6 +164,18 @@ Shader "Hidden/DocMe/MaskPainter/Overlay"
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
+            ENDCG
+        }
+
+        Pass
+        {
+            ZWrite Off
+            ZTest Always
+            Cull Off
+
+            CGPROGRAM
+            #pragma vertex vert_img
+            #pragma fragment fragView
             ENDCG
         }
     }
