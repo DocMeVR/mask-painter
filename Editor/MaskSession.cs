@@ -30,6 +30,7 @@ namespace DocMe.MaskPainter.Editor
         [NonSerialized] float strokeRadius, strokeSoftness, strokeValue, strokeStrength;
         [NonSerialized] bool mirrorStroking;
         [NonSerialized] bool smoothing;
+        [NonSerialized] float strokeBaseRadius, strokeBaseStrength;
         [NonSerialized] int smoothKernel;
         [NonSerialized] Vector3 lastMirrorDab;
 
@@ -269,16 +270,17 @@ namespace DocMe.MaskPainter.Editor
         }
 
         /// <param name="strength">The most this stroke moves a texel toward value (0 to 1); strokes add up.</param>
-        public void BeginStroke(MaskHit hit, float radius, float softness, float value, float strength = 1f)
+        public void BeginStroke(MaskHit hit, float radius, float softness, float value, float strength = 1f, float radiusScale = 1f, float strengthScale = 1f)
         {
             if (IsStroking) EndStroke();
             if (!IsValid(hit)) return;
             strokeBefore = Canvas.BeginStroke();
             smoothing = false;
-            strokeRadius = radius;
+            strokeBaseRadius = radius;
             strokeSoftness = softness;
             strokeValue = value;
-            strokeStrength = Mathf.Clamp01(strength);
+            strokeBaseStrength = Mathf.Clamp01(strength);
+            Scale(radiusScale, strengthScale);
             strokeFacing = mesh.NormalAt(hit);
             lastDab = hit.Point;
             Stamp(new[] { hit.Point }, strokeFacing);
@@ -290,9 +292,10 @@ namespace DocMe.MaskPainter.Editor
         /// Paints from the last dab to the new point, a dab every fifth of the brush size, so a fast drag leaves no gaps.
         /// After the drag left the model (jump), it starts again at the new point instead of painting across the gap.
         /// </summary>
-        public void ContinueStroke(MaskHit hit, bool jump = false)
+        public void ContinueStroke(MaskHit hit, bool jump = false, float radiusScale = 1f, float strengthScale = 1f)
         {
             if (!IsStroking || !IsValid(hit)) return;
+            Scale(radiusScale, strengthScale);
             strokeFacing = mesh.NormalAt(hit);
             if (jump)
             {
@@ -334,15 +337,16 @@ namespace DocMe.MaskPainter.Editor
         }
 
         /// <summary>Starts a Smooth stroke: it softens the painted channel under the brush, more with each pass.</summary>
-        public void BeginSmooth(MaskHit hit, float radius, float softness, float strength)
+        public void BeginSmooth(MaskHit hit, float radius, float softness, float strength, float radiusScale = 1f, float strengthScale = 1f)
         {
             if (IsStroking) EndStroke();
             if (!IsValid(hit)) return;
             strokeBefore = Canvas.BeginStroke();
             smoothing = true;
-            strokeRadius = radius;
+            strokeBaseRadius = radius;
             strokeSoftness = softness;
-            strokeStrength = Mathf.Clamp01(strength);
+            strokeBaseStrength = Mathf.Clamp01(strength);
+            Scale(radiusScale, strengthScale);
             float texels = mesh.TexelsPerMetre(hit.Triangle, Canvas.Width, Canvas.Height) * radius;
             smoothKernel = Mathf.Clamp(Mathf.RoundToInt(texels / 4f), 1, 6);
             strokeFacing = mesh.NormalAt(hit);
@@ -350,6 +354,13 @@ namespace DocMe.MaskPainter.Editor
             Stamp(new[] { hit.Point }, strokeFacing);
             mirrorStroking = false;
             MirrorStroke(hit, true);
+        }
+
+        /// <summary>A pen's pressure for what follows: the size down to a tenth, the strength down to nothing.</summary>
+        void Scale(float radiusScale, float strengthScale)
+        {
+            strokeRadius = strokeBaseRadius * Mathf.Clamp(radiusScale, 0.1f, 1f);
+            strokeStrength = strokeBaseStrength * Mathf.Clamp01(strengthScale);
         }
 
         void Stamp(IReadOnlyList<Vector3> path, Vector3 facing)

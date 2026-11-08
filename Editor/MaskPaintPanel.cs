@@ -19,10 +19,10 @@ namespace DocMe.MaskPainter.Editor
 
         DropdownField channelField, viewField;
         Label channelHint, hint, strengthLabel;
-        Button[] toolItems, blendItems, paintItems;
+        Button[] toolItems, blendItems, paintItems, penItems;
         Slider brushField, softnessField, strengthField, overlayField;
         Toggle mirrorField;
-        VisualElement blendRow, paintRow, strengthRow, swatch;
+        VisualElement blendRow, paintRow, strengthRow, swatch, penRow;
         string builtLanguage;
 
         public MaskPaintPanel()
@@ -76,6 +76,10 @@ namespace DocMe.MaskPainter.Editor
             strengthLabel = strengthField.labelElement;
             strengthRow = strengthField;
             root.Add(strengthField);
+            penRow = MaskUI.Row(MaskText.T("row.pen"), MaskText.T("row.pen.tip"), MaskUI.Switches(out penItems,
+                (MaskText.T("pen.size"), MaskText.T("pen.size.tip"), () => { if (Window != null) Window.PressureSize = !Window.PressureSize; Refresh(); }),
+                (MaskText.T("pen.strength"), MaskText.T("pen.strength.tip"), () => { if (Window != null) Window.PressureStrength = !Window.PressureStrength; Refresh(); })));
+            root.Add(penRow);
             mirrorField = new Toggle(MaskText.T("field.mirror")) { tooltip = MaskText.T("field.mirror.tip") };
             mirrorField.RegisterValueChangedCallback(e => { if (Window != null) Window.Mirror = e.newValue; });
             root.Add(mirrorField);
@@ -136,6 +140,9 @@ namespace DocMe.MaskPainter.Editor
             softnessField.SetValueWithoutNotify(window.Softness);
             MaskUI.Show(brushField, brush);
             MaskUI.Show(softnessField, brush);
+            MaskUI.SetSwitch(penItems[0], window.PressureSize);
+            MaskUI.SetSwitch(penItems[1], window.PressureStrength);
+            MaskUI.Show(penRow, brush);
             bool replace = window.Blend == MaskBlend.Replace && !smooth;
             strengthLabel.text = MaskText.T(replace ? "field.level" : "field.strength");
             strengthField.tooltip = MaskText.T(replace ? "field.level.tip" : smooth ? "field.smooth.tip" : "field.strength.tip");

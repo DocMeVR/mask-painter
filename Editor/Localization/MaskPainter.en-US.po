@@ -464,3 +464,21 @@ msgstr "How much each pass of the Smooth brush softens the mask."
 
 msgid "undo.smooth"
 msgstr "Smooth mask"
+
+msgid "row.pen"
+msgstr "Pen pressure"
+
+msgid "row.pen.tip"
+msgstr "With a drawing tablet, how hard you press changes these; a mouse always paints at full."
+
+msgid "pen.size"
+msgstr "Size"
+
+msgid "pen.size.tip"
+msgstr "Pressing lightly makes the brush smaller, down to a tenth of its size."
+
+msgid "pen.strength"
+msgstr "Strength"
+
+msgid "pen.strength.tip"
+msgstr "Pressing lightly paints or smooths less."

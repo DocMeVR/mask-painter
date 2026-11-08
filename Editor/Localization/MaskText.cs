@@ -174,6 +174,12 @@ namespace DocMe.MaskPainter.Editor
             "hint.smooth",
             "field.smooth.tip",
             "undo.smooth",
+            "row.pen",
+            "row.pen.tip",
+            "pen.size",
+            "pen.size.tip",
+            "pen.strength",
+            "pen.strength.tip",
         };
 
         public static string T(string key) => Find(key, MaskLanguage.Current);

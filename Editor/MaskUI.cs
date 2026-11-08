@@ -98,6 +98,27 @@ namespace DocMe.MaskPainter.Editor
             return seg;
         }
 
+        /// <summary>Independent on and off switches joined in one row; SetSwitch shows each one's state.</summary>
+        public static VisualElement Switches(out Button[] items, params (string text, string tooltip, Action click)[] choices)
+        {
+            var row = new VisualElement();
+            row.AddToClassList("docme-switches");
+            items = choices.Select(c =>
+            {
+                var b = new Button(c.click) { tooltip = c.tooltip };
+                b.AddToClassList("docme-switch");
+                var label = new Label(c.text) { pickingMode = PickingMode.Ignore };
+                label.AddToClassList("docme-switch-label");
+                b.Add(label);
+                row.Add(b);
+                return b;
+            }).ToArray();
+            if (items.Length > 0) items[items.Length - 1].AddToClassList("docme-switch-last");
+            return row;
+        }
+
+        public static void SetSwitch(Button item, bool on) => item.EnableInClassList("docme-switch-on", on);
+
         public static void Mark(Button[] items, int on)
         {
             for (int i = 0; i < items.Length; i++) items[i].EnableInClassList("docme-seg-on", i == on);

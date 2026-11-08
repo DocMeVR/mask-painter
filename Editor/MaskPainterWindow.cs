@@ -20,6 +20,10 @@ namespace DocMe.MaskPainter.Editor
     {
         public enum PaintTool { Off, Fill, Brush, Smooth }
 
+        /// <summary>How hard a drawing tablet pen presses, 0.1 to 1; a mouse or touch always counts as 1.</summary>
+        public static float PressureOf(UnityEngine.PointerType pointer, float pressure) =>
+            pointer == UnityEngine.PointerType.Pen ? Mathf.Clamp(pressure, 0.1f, 1f) : 1f;
+
         /// <summary>Whether the tool paints with the round brush (Brush or Smooth).</summary>
         static bool UsesBrush(PaintTool t) => t == PaintTool.Brush || t == PaintTool.Smooth;
 
@@ -43,6 +47,8 @@ namespace DocMe.MaskPainter.Editor
         [SerializeField] MaskBlend blend;
         [SerializeField] bool mirror;
         [SerializeField] bool paintsBlack;
+        [SerializeField] bool pressureSize = true;
+        [SerializeField] bool pressureStrength;
         [SerializeField, UnityEngine.Serialization.FormerlySerializedAs("showMode")] MaskShow shown;
         [SerializeField] float overlayStrength = 0.6f;
         [SerializeField] string slot;
@@ -82,6 +88,20 @@ namespace DocMe.MaskPainter.Editor
         }
 
         public void SwapPaint() => PaintsBlack = !paintsBlack;
+
+        /// <summary>A pen's pressure makes the brush smaller.</summary>
+        public bool PressureSize
+        {
+            get => pressureSize;
+            set => pressureSize = value;
+        }
+
+        /// <summary>A pen's pressure makes a stroke paint or smooth less.</summary>
+        public bool PressureStrength
+        {
+            get => pressureStrength;
+            set => pressureStrength = value;
+        }
 
         /// <summary>The value a fill or stroke paints now, with or without Shift, and how far it moves (amount).</summary>
         public float PaintValue(bool shift, out float amount) => StrokeValue(blend, strength, shift != paintsBlack, out amount);
@@ -761,8 +781,9 @@ namespace DocMe.MaskPainter.Editor
                     if (tool == PaintTool.Fill) session.FillPiece(hover, value, amount);
                     else
                     {
-                        if (tool == PaintTool.Smooth) session.BeginSmooth(hover, brushCm / 100f, softness, strength);
-                        else session.BeginStroke(hover, brushCm / 100f, softness, value, amount);
+                        Pressure(e, out float sizeScale, out float strengthScale);
+                        if (tool == PaintTool.Smooth) session.BeginSmooth(hover, brushCm / 100f, softness, strength, sizeScale, strengthScale);
+                        else session.BeginStroke(hover, brushCm / 100f, softness, value, amount, sizeScale, strengthScale);
                         GUIUtility.hotControl = heldControl = id;
                         dragMissed = false;
                     }
@@ -774,7 +795,8 @@ namespace DocMe.MaskPainter.Editor
                     UpdateHover(e);
                     if (hoverValid)
                     {
-                        session.ContinueStroke(hover, dragMissed);
+                        Pressure(e, out float sizeScale, out float strengthScale);
+                        session.ContinueStroke(hover, dragMissed, sizeScale, strengthScale);
                         dragMissed = false;
                     }
                     else dragMissed = true;
@@ -816,6 +838,13 @@ namespace DocMe.MaskPainter.Editor
                     DrawCursor(e);
                     break;
             }
+        }
+
+        void Pressure(Event e, out float sizeScale, out float strengthScale)
+        {
+            float pressure = PressureOf(e.pointerType, e.pressure);
+            sizeScale = pressureSize ? pressure : 1f;
+            strengthScale = pressureStrength ? pressure : 1f;
         }
 
         void UpdateHover(Event e)

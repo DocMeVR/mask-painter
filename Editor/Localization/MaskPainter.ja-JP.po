@@ -619,3 +619,27 @@ msgstr "ぼかしブラシで1回なぞったときのぼかし量です。"
 #. en: Smooth mask
 msgid "undo.smooth"
 msgstr "マスクをぼかす"
+
+#. en: Pen pressure
+msgid "row.pen"
+msgstr "筆圧"
+
+#. en: With a drawing tablet, how hard you press changes these; a mouse always paints at full.
+msgid "row.pen.tip"
+msgstr "ペンタブレットでは、押す強さでこれらが変わります。マウスは常に最大で塗ります。"
+
+#. en: Size
+msgid "pen.size"
+msgstr "サイズ"
+
+#. en: Pressing lightly makes the brush smaller, down to a tenth of its size.
+msgid "pen.size.tip"
+msgstr "軽く押すとブラシが小さくなります。最小で10分の1です。"
+
+#. en: Strength
+msgid "pen.strength"
+msgstr "強さ"
+
+#. en: Pressing lightly paints or smooths less.
+msgid "pen.strength.tip"
+msgstr "軽く押すと、塗る量やぼかす量が減ります。"
