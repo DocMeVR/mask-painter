@@ -441,33 +441,54 @@ namespace DocMe.MaskPainter.Editor
         }
 
         /// <summary>
-        /// Softens the mask along the line through centres: each texel moves toward the mean of the texels of its own
-        /// piece within kernel texels, by the brush weight times strength. Gaps and other pieces never bleed in.
+        /// Softens the mask along the line through centres: each texel moves toward a box blur of kernel texels, by the
+        /// brush weight times strength. The blur runs along rows, then columns, and stops wherever the piece changes, so
+        /// gaps and other pieces never bleed in. Its cost grows with the brush area only.
         /// </summary>
         public void Smooth(IReadOnlyList<Vector3> centres, float radius, float softness, float strength, Vector3 facing, int kernel)
         {
             var touched = new List<(int index, float weight)>();
             if (!Reach(centres, radius, softness, facing, touched, out var painted)) return;
-            var next = new float[touched.Count];
-            for (int n = 0; n < touched.Count; n++)
+            var area = Grow(painted, kernel);
+            int w = area.width, h = area.height, x0 = area.xMin, y0 = area.yMin;
+            var across = new float[w * h];
+            var prefix = new double[Mathf.Max(w, h) + 1];
+            for (int y = 0; y < h; y++)
+                BlurRun(w, k => (y0 + y) * Width + x0 + k, k => Values[(y0 + y) * Width + x0 + k], (k, v) => across[y * w + k] = v, kernel, prefix);
+            var blurred = new float[w * h];
+            for (int x = 0; x < w; x++)
+                BlurRun(h, k => (y0 + k) * Width + x0 + x, k => across[k * w + x], (k, v) => blurred[k * w + x] = v, kernel, prefix);
+            foreach (var (i, weight) in touched)
             {
-                int i = touched[n].index, x = i % Width, y = i / Width, piece = owner[i];
-                float sum = 0f;
-                int count = 0;
-                for (int ny = Mathf.Max(0, y - kernel); ny <= Mathf.Min(Height - 1, y + kernel); ny++)
-                    for (int nx = Mathf.Max(0, x - kernel); nx <= Mathf.Min(Width - 1, x + kernel); nx++)
-                    {
-                        int j = ny * Width + nx;
-                        if (owner[j] != piece) continue;
-                        sum += Values[j];
-                        count++;
-                    }
-                float mean = count > 0 ? sum / count : Values[i];
-                next[n] = Values[i] + (mean - Values[i]) * Mathf.Clamp01(touched[n].weight * strength);
+                float mean = blurred[(i / Width - y0) * w + i % Width - x0];
+                Values[i] += (mean - Values[i]) * Mathf.Clamp01(weight * strength);
             }
-            for (int n = 0; n < touched.Count; n++) Values[touched[n].index] = next[n];
             BleedIntoGaps(painted);
             MarkChanged(Grow(painted, Bleed));
+        }
+
+        /// <summary>
+        /// A box blur of kernel along one line of length texels, inside each run of one piece: index gives a texel's place
+        /// in the canvas (for its piece), read its value, write the result.
+        /// </summary>
+        void BlurRun(int length, Func<int, int> index, Func<int, float> read, Action<int, float> write, int kernel, double[] prefix)
+        {
+            prefix[0] = 0;
+            for (int k = 0; k < length; k++) prefix[k + 1] = prefix[k] + read(k);
+            int start = 0;
+            while (start < length)
+            {
+                int piece = owner[index(start)];
+                int end = start;
+                while (end < length && owner[index(end)] == piece) end++;
+                if (piece >= 0)
+                    for (int k = start; k < end; k++)
+                    {
+                        int a = Mathf.Max(start, k - kernel), b = Mathf.Min(end - 1, k + kernel);
+                        write(k, (float)((prefix[b + 1] - prefix[a]) / (b - a + 1)));
+                    }
+                start = end;
+            }
         }
 
         /// <summary>

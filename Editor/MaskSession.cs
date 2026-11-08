@@ -23,6 +23,7 @@ namespace DocMe.MaskPainter.Editor
         [NonSerialized] MaskHistory history;
         [NonSerialized] Mesh preview;
         [NonSerialized] Texture2D texture;
+        [NonSerialized] Texture2D patch;
         [NonSerialized] Matrix4x4 bakedAt;
         [NonSerialized] float[] strokeBefore;
         [NonSerialized] Vector3 lastDab;
@@ -156,8 +157,10 @@ namespace DocMe.MaskPainter.Editor
             if (IsStroking) EndStroke();
             if (preview != null) Object.DestroyImmediate(preview);
             if (texture != null) Object.DestroyImmediate(texture);
+            if (patch != null) Object.DestroyImmediate(patch);
             preview = null;
             texture = null;
+            patch = null;
             mesh = null;
         }
 
@@ -349,11 +352,11 @@ namespace DocMe.MaskPainter.Editor
             mirrorStroking = true;
         }
 
-        /// <summary>The piece of the stroke from last to to; false while to is still within a twentieth of the brush size.</summary>
+        /// <summary>The piece of the stroke from last to to; false while to is still within a fifth of the brush size.</summary>
         bool SegmentTo(ref Vector3 last, Vector3 to, out Vector3[] segment)
         {
             segment = null;
-            if (Vector3.Distance(last, to) < Mathf.Max(strokeRadius * 0.05f, 1e-5f)) return false;
+            if (Vector3.Distance(last, to) < Mathf.Max(strokeRadius * 0.2f, 1e-5f)) return false;
             segment = new[] { last, to };
             last = to;
             return true;
@@ -480,7 +483,7 @@ namespace DocMe.MaskPainter.Editor
 
         /// <summary>
         /// Converts the changed rectangle: every channel as the canvas holds it, with the painted one taken from the
-        /// values the way Commit writes them. Apply then sends the whole texture.
+        /// values the way Commit writes them. Only that rectangle goes to the graphics card.
         /// </summary>
         void Upload(RectInt rect)
         {
@@ -499,8 +502,29 @@ namespace DocMe.MaskPainter.Editor
                     if (channel != MaskChannel.All) pixels[p + offset] = v;
                     else if (v != source[p]) pixels[p] = pixels[p + 1] = pixels[p + 2] = v;
                 }
-            texture.Apply(false);
+            SendToGraphicsCard(rect);
             PreviewVersion++;
+        }
+
+        /// <summary>Copies one rectangle of the preview's pixels to the graphics card; the whole texture when that cannot be done.</summary>
+        void SendToGraphicsCard(RectInt rect)
+        {
+            bool whole = rect.width >= Canvas.Width && rect.height >= Canvas.Height;
+            if (whole || SystemInfo.copyTextureSupport == UnityEngine.Rendering.CopyTextureSupport.None)
+            {
+                texture.Apply(false);
+                return;
+            }
+            if (patch == null)
+                patch = new Texture2D(rect.width, rect.height, TextureFormat.RGBA32, false, true) { name = "Mask Painter Patch", hideFlags = HideFlags.HideAndDontSave };
+            else if (patch.width != rect.width || patch.height != rect.height) patch.Reinitialize(rect.width, rect.height);
+            var from = texture.GetPixelData<byte>(0);
+            var to = patch.GetPixelData<byte>(0);
+            int width = Canvas.Width;
+            for (int y = 0; y < rect.height; y++)
+                Unity.Collections.NativeArray<byte>.Copy(from, 4 * ((rect.y + y) * width + rect.x), to, 4 * y * rect.width, 4 * rect.width);
+            patch.Apply(false);
+            Graphics.CopyTexture(patch, 0, 0, 0, 0, rect.width, rect.height, texture, 0, 0, rect.x, rect.y);
         }
 
         public Texture2D Save(string assetPath)
