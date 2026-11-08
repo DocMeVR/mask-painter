@@ -53,6 +53,7 @@ namespace DocMe.MaskPainter.Editor
         [SerializeField, UnityEngine.Serialization.FormerlySerializedAs("showMode")] MaskShow shown;
         [SerializeField] float overlayStrength = 0.6f;
         [SerializeField] string slot;
+        [SerializeField] string startSlot;
         [SerializeField] string status;
 
         [NonSerialized] Material overlay;
@@ -186,11 +187,11 @@ namespace DocMe.MaskPainter.Editor
             startTexture = texture;
             status = null;
             textureUnused = !MaskFind.User(texture, target, out var renderer, out int index, out string found);
+            startSlot = textureUnused ? null : found;
             if (!textureUnused)
             {
                 target = renderer;
                 materialIndex = index;
-                slot = found;
             }
             Refresh();
             if (start && MeshProblem() == null) StartPainting();
@@ -625,7 +626,7 @@ namespace DocMe.MaskPainter.Editor
                 if (texture != null)
                 {
                     startTexture = texture;
-                    slot = picked;
+                    startSlot = picked;
                     textureUnused = false;
                 }
                 Refresh();
@@ -644,21 +645,6 @@ namespace DocMe.MaskPainter.Editor
             });
         }
 
-        /// <summary>
-        /// The avatar the mesh belongs to, whose left and right the mirror runs across: its VRChat avatar descriptor,
-        /// else the topmost Animator above the mesh (a clothing prefab's own Animator sits lower), else its root.
-        /// </summary>
-        static Transform MirrorRoot(Renderer renderer)
-        {
-            Transform topAnimator = null;
-            for (var t = renderer.transform; t != null; t = t.parent)
-            {
-                if (t.GetComponents<Component>().Any(c => c != null && c.GetType().Name == "VRCAvatarDescriptor")) return t;
-                if (t.GetComponent<Animator>() != null) topAnimator = t;
-            }
-            return topAnimator != null ? topAnimator : renderer.transform.root;
-        }
-
         void StartPainting()
         {
             if (MeshProblem() != null) return;
@@ -670,6 +656,7 @@ namespace DocMe.MaskPainter.Editor
             hoverValid = false;
             var from = startTexture != null ? MaskStart.Texture : start == MaskStart.White ? MaskStart.White : MaskStart.Black;
             session = MaskSession.Start(target, uvChannel, materialIndex, size, from, startTexture);
+            slot = startTexture != null ? startSlot : null;
             status = session == null ? MaskText.T("mesh.none") : null;
             if (tool == PaintTool.Off) tool = PaintTool.Fill;
             Isolate();
@@ -833,7 +820,7 @@ namespace DocMe.MaskPainter.Editor
                     if (e.button != 0 || e.alt) break;
                     // Bones may have moved since the last look (an animation preview): read the pose before aiming.
                     session.Rebake(true);
-                    session.Mirror = mirror ? MaskSession.MirrorAcross(MirrorRoot(session.Renderer)) : (Matrix4x4?)null;
+                    session.Mirror = mirror ? MaskSession.MirrorAcross(MaskFind.AvatarRoot(session.Renderer)) : (Matrix4x4?)null;
                     UpdateHover(e);
                     e.Use();
                     if (!hoverValid) break;
