@@ -161,6 +161,9 @@ namespace DocMe.MaskPainter.Editor
             "note.texture.writeback",
             "note.texture.readonly",
             "note.texture.nouser",
+            "show.every",
+            "field.overlay",
+            "field.overlay.tip",
         };
 
         public static string T(string key) => Find(key, MaskLanguage.Current);

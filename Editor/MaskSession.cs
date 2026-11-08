@@ -397,7 +397,7 @@ namespace DocMe.MaskPainter.Editor
                 texture = null;
             }
             if (texture == null)
-                texture = new Texture2D(Canvas.Width, Canvas.Height, TextureFormat.R8, false, true)
+                texture = new Texture2D(Canvas.Width, Canvas.Height, TextureFormat.RGBA32, false, true)
                 {
                     name = "Mask Painter Preview",
                     hideFlags = HideFlags.HideAndDontSave,
@@ -407,17 +407,26 @@ namespace DocMe.MaskPainter.Editor
             Upload(new RectInt(0, 0, Canvas.Width, Canvas.Height));
         }
 
-        /// <summary>Converts the changed rectangle; Apply then sends the whole texture.</summary>
+        /// <summary>
+        /// Converts the changed rectangle: every channel as the canvas holds it, with the painted one taken from the
+        /// values the way Commit writes them. Apply then sends the whole texture.
+        /// </summary>
         void Upload(RectInt rect)
         {
             var pixels = texture.GetPixelData<byte>(0);
             var values = Canvas.Values;
+            var source = Canvas.Pixels;
             int width = Canvas.Width;
+            var channel = Canvas.Channel;
+            int offset = MaskLook.Offset(channel);
             for (int y = rect.yMin; y < rect.yMax; y++)
                 for (int x = rect.xMin; x < rect.xMax; x++)
                 {
-                    int i = y * width + x;
-                    pixels[i] = (byte)Mathf.RoundToInt(Mathf.Clamp01(values[i]) * 255f);
+                    int i = y * width + x, p = 4 * i;
+                    byte v = (byte)Mathf.RoundToInt(Mathf.Clamp01(values[i]) * 255f);
+                    for (int c = 0; c < 4; c++) pixels[p + c] = source[p + c];
+                    if (channel != MaskChannel.All) pixels[p + offset] = v;
+                    else if (v != source[p]) pixels[p] = pixels[p + 1] = pixels[p + 2] = v;
                 }
             texture.Apply(false);
         }

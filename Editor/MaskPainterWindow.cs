@@ -39,7 +39,8 @@ namespace DocMe.MaskPainter.Editor
         [SerializeField] float strength = 1f;
         [SerializeField] MaskBlend blend;
         [SerializeField] bool mirror;
-        [SerializeField] int showMode;
+        [SerializeField, UnityEngine.Serialization.FormerlySerializedAs("showMode")] MaskShow shown;
+        [SerializeField] float overlayStrength = 0.6f;
         [SerializeField] string slot;
         [SerializeField] string status;
 
@@ -121,13 +122,24 @@ namespace DocMe.MaskPainter.Editor
             set => mirror = value;
         }
 
-        /// <summary>What the Scene view shows: 0 the green overlay, 1 the mask only, 2 nothing.</summary>
-        public int ShowMode
+        /// <summary>What the Scene view draws over the model while painting.</summary>
+        public MaskShow View
         {
-            get => showMode;
+            get => shown;
             set
             {
-                showMode = Mathf.Clamp(value, 0, 2);
+                shown = value;
+                SceneView.RepaintAll();
+            }
+        }
+
+        /// <summary>How strongly the overlay's colours cover the model, 0 to 1.</summary>
+        public float OverlayStrength
+        {
+            get => overlayStrength;
+            set
+            {
+                overlayStrength = Mathf.Clamp01(value);
                 SceneView.RepaintAll();
             }
         }
@@ -670,7 +682,7 @@ namespace DocMe.MaskPainter.Editor
                 return;
             }
             var e = Event.current;
-            if (showMode != 2 && e.type == EventType.Repaint) DrawOverlay();
+            if (shown != MaskShow.Nothing && e.type == EventType.Repaint) DrawOverlay();
             if (tool == PaintTool.Off || EditorApplication.isPlayingOrWillChangePlaymode)
             {
                 if (session.IsStroking) session.EndStroke();
@@ -780,7 +792,11 @@ namespace DocMe.MaskPainter.Editor
             session.Rebake(false);
             if (session.PreviewMesh == null) return;
             material.SetTexture("_Mask", session.PreviewTexture);
-            material.SetFloat("_Mode", showMode == 1 ? 1f : 0f);
+            material.SetFloat("_Mode", shown == MaskShow.MaskOnly ? 1f : 0f);
+            material.SetFloat("_Every", shown == MaskShow.EveryChannel ? 1f : 0f);
+            material.SetFloat("_Channel", MaskLook.Offset(session.Channel));
+            material.SetColor("_Tint", MaskLook.Tint(session.Channel));
+            material.SetFloat("_Opacity", overlayStrength);
             material.SetFloat("_Hover", hoverValid && tool == PaintTool.Fill && session.IsValid(hover) ? session.IslandAt(hover) : -1f);
             for (int pass = 0; pass < 2; pass++)
             {
@@ -794,7 +810,7 @@ namespace DocMe.MaskPainter.Editor
             if (!hoverValid || tool != PaintTool.Brush || !session.IsValid(hover)) return;
             var normal = session.Mesh.NormalAt(hover);
             float radius = brushCm / 100f;
-            using (new Handles.DrawingScope(e.shift ? new Color(0.1f, 0.1f, 0.1f, 1f) : new Color(0.25f, 0.79f, 0.66f, 1f)))
+            using (new Handles.DrawingScope(e.shift ? new Color(0.1f, 0.1f, 0.1f, 1f) : MaskLook.Tint(session.Channel)))
             {
                 Handles.DrawWireDisc(hover.Point, normal, radius, 2f);
                 if (softness > 0.01f) Handles.DrawWireDisc(hover.Point, normal, radius * (1f - softness));

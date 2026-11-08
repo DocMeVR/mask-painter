@@ -138,3 +138,10 @@
 .docme-root .unity-button.docme-mp-picker { flex-grow: 1; flex-shrink: 1; margin: 0; -unity-text-align: middle-left; }
 .docme-mp-status { margin-top: 8px; }
 .docme-panel > .docme-message { margin-bottom: 4px; }
+/* Channel swatch beside Paint into: the colours the Scene view overlay and the brush ring use (MaskLook.Tint). */
+.docme-mp-swatch { width: 12px; height: 12px; flex-shrink: 0; margin: 0 4px 0 0; border-radius: 3px; border-width: 1px; border-color: var(--docme-border); align-self: center; }
+.docme-mp-swatch-all { background-color: rgb(64, 201, 168); }
+.docme-mp-swatch-red { background-color: rgb(242, 69, 69); }
+.docme-mp-swatch-green { background-color: rgb(77, 224, 92); }
+.docme-mp-swatch-blue { background-color: rgb(77, 140, 255); }
+.docme-mp-swatch-alpha { background-color: rgb(199, 115, 255); }

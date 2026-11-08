@@ -13,14 +13,16 @@ namespace DocMe.MaskPainter.Editor
     public sealed class MaskPaintPanel : VisualElement
     {
         static string[] ChannelChoices => new[] { MaskText.T("channel.all"), MaskText.T("channel.red"), MaskText.T("channel.green"), MaskText.T("channel.blue"), MaskText.T("channel.alpha") };
-        static string[] ViewChoices => new[] { MaskText.T("show.overlay"), MaskText.T("show.mask"), MaskText.T("show.nothing") };
+        static string[] ViewChoices => new[] { MaskText.T("show.overlay"), MaskText.T("show.every"), MaskText.T("show.mask"), MaskText.T("show.nothing") };
+        static readonly MaskShow[] ViewOrder = { MaskShow.Overlay, MaskShow.EveryChannel, MaskShow.MaskOnly, MaskShow.Nothing };
+        static readonly string[] SwatchClasses = { "docme-mp-swatch-all", "docme-mp-swatch-red", "docme-mp-swatch-green", "docme-mp-swatch-blue", "docme-mp-swatch-alpha" };
 
         DropdownField channelField, viewField;
         Label channelHint, hint, strengthLabel;
         Button[] toolItems, blendItems;
-        Slider brushField, softnessField, strengthField;
+        Slider brushField, softnessField, strengthField, overlayField;
         Toggle mirrorField;
-        VisualElement blendRow, strengthRow;
+        VisualElement blendRow, strengthRow, swatch;
         string builtLanguage;
 
         public MaskPaintPanel()
@@ -40,6 +42,9 @@ namespace DocMe.MaskPainter.Editor
 
             channelField = new DropdownField(MaskText.T("field.channel"), ChannelChoices.ToList(), 0) { tooltip = MaskText.T("field.channel.tip") };
             channelField.RegisterValueChangedCallback(_ => Window?.SelectChannel((MaskChannel)Mathf.Max(0, channelField.index)));
+            swatch = new VisualElement { pickingMode = PickingMode.Ignore };
+            swatch.AddToClassList("docme-mp-swatch");
+            channelField.Insert(1, swatch);
             root.Add(channelField);
             channelHint = MaskUI.Note("");
             root.Add(channelHint);
@@ -68,8 +73,11 @@ namespace DocMe.MaskPainter.Editor
             mirrorField.RegisterValueChangedCallback(e => { if (Window != null) Window.Mirror = e.newValue; });
             root.Add(mirrorField);
             viewField = new DropdownField(MaskText.T("field.show"), ViewChoices.ToList(), 0) { tooltip = MaskText.T("field.show.tip") };
-            viewField.RegisterValueChangedCallback(_ => { if (Window != null) Window.ShowMode = Mathf.Max(0, viewField.index); });
+            viewField.RegisterValueChangedCallback(_ => { if (Window != null) Window.View = ViewOrder[Mathf.Clamp(viewField.index, 0, ViewOrder.Length - 1)]; });
             root.Add(viewField);
+            overlayField = new Slider(MaskText.T("field.overlay"), 0f, 1f) { showInputField = true, tooltip = MaskText.T("field.overlay.tip") };
+            overlayField.RegisterValueChangedCallback(e => { if (Window != null) Window.OverlayStrength = e.newValue; });
+            root.Add(overlayField);
             root.Add(MaskUI.Row(MaskText.T("row.whole"), MaskText.T("row.whole.tip"), MaskUI.Wrap(
                 MaskUI.Button(MaskText.T("button.allblack"), MaskText.T("button.allblack.tip"), () => Window?.FillAll(0f)),
                 MaskUI.Button(MaskText.T("button.allwhite"), MaskText.T("button.allwhite.tip"), () => Window?.FillAll(1f)),
@@ -97,6 +105,7 @@ namespace DocMe.MaskPainter.Editor
             if (window == null || !window.IsPainting) return;
             var channel = window.Channel;
             channelField.SetValueWithoutNotify(ChannelChoices[(int)channel]);
+            for (int i = 0; i < SwatchClasses.Length; i++) swatch.EnableInClassList(SwatchClasses[i], i == (int)channel);
             channelHint.text = channel == MaskChannel.All ? "" : MaskText.T("hint.channel", ChannelChoices[(int)channel]);
             MaskUI.Show(channelHint, channel != MaskChannel.All);
 
@@ -117,7 +126,10 @@ namespace DocMe.MaskPainter.Editor
             MaskUI.Show(strengthRow, painting);
             mirrorField.SetValueWithoutNotify(window.Mirror);
             MaskUI.Show(mirrorField, painting);
-            viewField.SetValueWithoutNotify(ViewChoices[Mathf.Clamp(window.ShowMode, 0, ViewChoices.Length - 1)]);
+            int viewIndex = System.Array.IndexOf(ViewOrder, window.View);
+            viewField.SetValueWithoutNotify(ViewChoices[Mathf.Max(0, viewIndex)]);
+            overlayField.SetValueWithoutNotify(window.OverlayStrength);
+            MaskUI.Show(overlayField, window.View == MaskShow.Overlay || window.View == MaskShow.EveryChannel);
             hint.text = tool == MaskPainterWindow.PaintTool.Fill ? MaskText.T("hint.fill")
                 : brush ? MaskText.T("hint.brush")
                 : MaskText.T("hint.off");

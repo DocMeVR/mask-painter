@@ -232,13 +232,13 @@ msgstr "白と黒をすべて入れ替えます。"
 msgid "field.show"
 msgstr "表示"
 
-#. en: How the Scene view shows the mask on the model: green over its colours, the mask's own greys, or nothing. Your materials do not change.
+#. en: What the Scene view draws over the model: one channel or every channel in its own colour, the mask's greys, or nothing.
 msgid "field.show.tip"
-msgstr "シーンビューでマスクをどう見せるかを選びます。元の色の上に緑で重ねる、マスクそのものの灰色、または表示なしです。マテリアルは変わりません。"
+msgstr "シーンビューでモデルに重ねる表示です。チャンネルごとの色、マスクのグレー、何も出さない、から選べます。"
 
-#. en: Overlay
+#. en: This channel
 msgid "show.overlay"
-msgstr "重ねて表示"
+msgstr "このチャンネル"
 
 #. en: Mask only
 msgid "show.mask"
@@ -567,3 +567,15 @@ msgstr "このファイルは読み込むだけです。最初の保存で保存
 #. en: No material in the open scenes uses this texture. Pick the mesh and material it is for.
 msgid "note.texture.nouser"
 msgstr "開いているシーンに、このテクスチャを使うマテリアルがありません。使う予定のメッシュとマテリアルを選んでください。"
+
+#. en: Every channel
+msgid "show.every"
+msgstr "全チャンネル"
+
+#. en: Overlay strength
+msgid "field.overlay"
+msgstr "重ねる濃さ"
+
+#. en: How strongly the colours cover the model in the Scene view.
+msgid "field.overlay.tip"
+msgstr "シーンビューでモデルに重ねる色の濃さです。"
