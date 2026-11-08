@@ -136,25 +136,25 @@ msgstr "シーンビューのクリックは、いつもどおりオブジェク
 msgid "tool.fill"
 msgstr "パーツ塗り"
 
-#. en: A click fills the whole piece of the model under the mouse.
+#. en: A click fills the whole piece of the model under the mouse (G).
 msgid "tool.fill.tip"
-msgstr "クリックすると、マウス下にあるモデルのパーツ全体を塗ります。"
+msgstr "クリックすると、マウス下にあるモデルのパーツ全体を塗ります（G）。"
 
 #. en: Brush
 msgid "tool.brush"
 msgstr "ブラシ"
 
-#. en: Drag on the model to paint with a round brush.
+#. en: Drag on the model to paint with a round brush (B).
 msgid "tool.brush.tip"
-msgstr "モデル上をドラッグして、丸いブラシで塗ります。"
+msgstr "モデル上をドラッグして、丸いブラシで塗ります（B）。"
 
 #. en: Brush size (cm)
 msgid "field.brush"
 msgstr "ブラシ幅 (cm)"
 
-#. en: How wide the brush is on the model, in centimetres: the [ and ] keys change it too.
+#. en: How wide the brush is on the model, in centimetres; [ and ] or Ctrl+mouse wheel change it too.
 msgid "field.brush.tip"
-msgstr "モデル上のブラシの幅をセンチメートルで指定します。[ キーと ] キーでも変えられます。"
+msgstr "モデル上のブラシの幅をセンチメートルで指定します。[ と ] キー、Ctrl+マウスホイールでも変えられます。"
 
 #. en: Softness
 msgid "field.softness"
@@ -180,13 +180,13 @@ msgstr "ミラー"
 msgid "field.mirror.tip"
 msgstr "アバターの左右反対側にも同じように塗ります。"
 
-#. en: Click a piece of the model in the Scene view to fill it white. Shift+click fills it black.
+#. en: Click a piece of the model to fill it, Shift+click for the other colour. Ctrl+click picks the grey under the mouse.
 msgid "hint.fill"
-msgstr "シーンビューでモデルのパーツをクリックすると白で塗りつぶします。Shift+クリックで黒になります。"
+msgstr "モデルのパーツをクリックで塗り、Shift+クリックでもう一方の色になります。Ctrl+クリックでマウス下のグレーを拾います。"
 
-#. en: Drag on the model in the Scene view to paint white. Hold Shift to paint black. Alt+drag still turns the view.
+#. en: Drag on the model to paint, hold Shift for the other colour. Ctrl+click picks the grey under the mouse, and Alt+drag still turns the view.
 msgid "hint.brush"
-msgstr "シーンビューでモデル上をドラッグすると白で塗ります。Shiftを押すと黒で塗ります。Alt+ドラッグで視点を回せます。"
+msgstr "モデル上をドラッグで塗り、Shiftを押すともう一方の色になります。Ctrl+クリックでマウス下のグレーを拾い、Alt+ドラッグで視点を回せます。"
 
 #. en: Pick Fill pieces or Brush to paint in the Scene view.
 msgid "hint.off"
@@ -500,17 +500,17 @@ msgstr "塗りつぶしやストロークを白へ重ねていくか、決まっ
 msgid "blend.add"
 msgstr "加算"
 
-#. en: Each fill or stroke moves the mask toward white by Strength, and toward black with Shift.
+#. en: Each fill or stroke moves the mask toward the colour it paints by Strength.
 msgid "blend.add.tip"
-msgstr "塗るたびに Strength の分だけ白へ、Shift を押すと黒へ近づけます。"
+msgstr "塗るたびに、強さの分だけ塗る色へ近づけます。"
 
 #. en: Replace
 msgid "blend.replace"
 msgstr "置き換え"
 
-#. en: Each fill or stroke sets the mask to the Grey level, and to black with Shift.
+#. en: Each fill or stroke sets the mask to the Grey level, or to black.
 msgid "blend.replace.tip"
-msgstr "塗った場所を Grey level のグレーに、Shift を押すと黒にします。"
+msgstr "塗った場所を、グレーの値か黒そのものにします。"
 
 #. en: Grey level
 msgid "field.level"
@@ -579,3 +579,19 @@ msgstr "重ねる濃さ"
 #. en: How strongly the colours cover the model in the Scene view.
 msgid "field.overlay.tip"
 msgstr "シーンビューでモデルに重ねる色の濃さです。"
+
+#. en: Paints
+msgid "row.paints"
+msgstr "塗る色"
+
+#. en: The colour a click or stroke paints; Shift paints the other one and X swaps them.
+msgid "row.paints.tip"
+msgstr "クリックやドラッグで塗る色です。Shiftでもう一方の色になり、Xで入れ替えます。"
+
+#. en: Paints white, or the Grey level with Replace.
+msgid "paint.white.tip"
+msgstr "白で塗ります。置き換えではグレーの値で塗ります。"
+
+#. en: Paints black, so Shift paints white.
+msgid "paint.black.tip"
+msgstr "黒で塗ります。Shiftで白になります。"

@@ -205,6 +205,16 @@ namespace DocMe.MaskPainter.Editor
 
         public int IslandAt(MaskHit hit) => mesh.Island[hit.Triangle];
 
+        /// <summary>The painted channel's value at the texel under hit.</summary>
+        public float ValueAt(MaskHit hit)
+        {
+            if (!IsValid(hit)) return 0f;
+            var uv = mesh.UvAt(hit);
+            int x = Mathf.Clamp(Mathf.FloorToInt(uv.x * Canvas.Width), 0, Canvas.Width - 1);
+            int y = Mathf.Clamp(Mathf.FloorToInt(uv.y * Canvas.Height), 0, Canvas.Height - 1);
+            return Canvas[x, y];
+        }
+
         /// <summary>
         /// The point of the model mirrored from hit: the surface facing the mirrored way that lies closest to the
         /// mirrored point, within 2 cm at the avatar's size.

@@ -19,10 +19,10 @@ namespace DocMe.MaskPainter.Editor
 
         DropdownField channelField, viewField;
         Label channelHint, hint, strengthLabel;
-        Button[] toolItems, blendItems;
+        Button[] toolItems, blendItems, paintItems;
         Slider brushField, softnessField, strengthField, overlayField;
         Toggle mirrorField;
-        VisualElement blendRow, strengthRow, swatch;
+        VisualElement blendRow, paintRow, strengthRow, swatch;
         string builtLanguage;
 
         public MaskPaintPanel()
@@ -57,6 +57,10 @@ namespace DocMe.MaskPainter.Editor
                 (MaskText.T("blend.add"), MaskText.T("blend.add.tip"), () => SetBlend(MaskBlend.Add)),
                 (MaskText.T("blend.replace"), MaskText.T("blend.replace.tip"), () => SetBlend(MaskBlend.Replace))));
             root.Add(blendRow);
+            paintRow = MaskUI.Row(MaskText.T("row.paints"), MaskText.T("row.paints.tip"), MaskUI.Segments(out paintItems,
+                (MaskText.T("start.white"), MaskText.T("paint.white.tip"), () => SetPaintsBlack(false)),
+                (MaskText.T("start.black"), MaskText.T("paint.black.tip"), () => SetPaintsBlack(true))));
+            root.Add(paintRow);
 
             brushField = new Slider(MaskText.T("field.brush"), MaskPainterWindow.MinBrushCm, MaskPainterWindow.MaxBrushCm) { showInputField = true, tooltip = MaskText.T("field.brush.tip") };
             brushField.RegisterValueChangedCallback(e => { if (Window != null) Window.BrushCm = e.newValue; });
@@ -84,6 +88,13 @@ namespace DocMe.MaskPainter.Editor
                 MaskUI.Button(MaskText.T("button.invert"), MaskText.T("button.invert.tip"), () => Window?.Invert()))));
             hint = MaskUI.Note("");
             root.Add(hint);
+            Refresh();
+        }
+
+        void SetPaintsBlack(bool black)
+        {
+            if (Window == null) return;
+            Window.PaintsBlack = black;
             Refresh();
         }
 
@@ -115,6 +126,8 @@ namespace DocMe.MaskPainter.Editor
             MaskUI.Mark(toolItems, (int)tool);
             MaskUI.Mark(blendItems, (int)window.Blend);
             MaskUI.Show(blendRow, painting);
+            MaskUI.Mark(paintItems, window.PaintsBlack ? 1 : 0);
+            MaskUI.Show(paintRow, painting);
             brushField.SetValueWithoutNotify(window.BrushCm);
             softnessField.SetValueWithoutNotify(window.Softness);
             MaskUI.Show(brushField, brush);

@@ -164,6 +164,10 @@ namespace DocMe.MaskPainter.Editor
             "show.every",
             "field.overlay",
             "field.overlay.tip",
+            "row.paints",
+            "row.paints.tip",
+            "paint.white.tip",
+            "paint.black.tip",
         };
 
         public static string T(string key) => Find(key, MaskLanguage.Current);

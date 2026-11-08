@@ -103,19 +103,19 @@ msgid "tool.fill"
 msgstr "Fill pieces"
 
 msgid "tool.fill.tip"
-msgstr "A click fills the whole piece of the model under the mouse."
+msgstr "A click fills the whole piece of the model under the mouse (G)."
 
 msgid "tool.brush"
 msgstr "Brush"
 
 msgid "tool.brush.tip"
-msgstr "Drag on the model to paint with a round brush."
+msgstr "Drag on the model to paint with a round brush (B)."
 
 msgid "field.brush"
 msgstr "Brush size (cm)"
 
 msgid "field.brush.tip"
-msgstr "How wide the brush is on the model, in centimetres: the [ and ] keys change it too."
+msgstr "How wide the brush is on the model, in centimetres; [ and ] or Ctrl+mouse wheel change it too."
 
 msgid "field.softness"
 msgstr "Softness"
@@ -136,10 +136,10 @@ msgid "field.mirror.tip"
 msgstr "Paints and fills the same on the other side of the avatar, left and right."
 
 msgid "hint.fill"
-msgstr "Click a piece of the model in the Scene view to fill it white. Shift+click fills it black."
+msgstr "Click a piece of the model to fill it, Shift+click for the other colour. Ctrl+click picks the grey under the mouse."
 
 msgid "hint.brush"
-msgstr "Drag on the model in the Scene view to paint white. Hold Shift to paint black. Alt+drag still turns the view."
+msgstr "Drag on the model to paint, hold Shift for the other colour. Ctrl+click picks the grey under the mouse, and Alt+drag still turns the view."
 
 msgid "hint.off"
 msgstr "Pick Fill pieces or Brush to paint in the Scene view."
@@ -376,13 +376,13 @@ msgid "blend.add"
 msgstr "Add"
 
 msgid "blend.add.tip"
-msgstr "Each fill or stroke moves the mask toward white by Strength, and toward black with Shift."
+msgstr "Each fill or stroke moves the mask toward the colour it paints by Strength."
 
 msgid "blend.replace"
 msgstr "Replace"
 
 msgid "blend.replace.tip"
-msgstr "Each fill or stroke sets the mask to the Grey level, and to black with Shift."
+msgstr "Each fill or stroke sets the mask to the Grey level, or to black."
 
 msgid "field.level"
 msgstr "Grey level"
@@ -434,3 +434,15 @@ msgstr "Overlay strength"
 
 msgid "field.overlay.tip"
 msgstr "How strongly the colours cover the model in the Scene view."
+
+msgid "row.paints"
+msgstr "Paints"
+
+msgid "row.paints.tip"
+msgstr "The colour a click or stroke paints; Shift paints the other one and X swaps them."
+
+msgid "paint.white.tip"
+msgstr "Paints white, or the Grey level with Replace."
+
+msgid "paint.black.tip"
+msgstr "Paints black, so Shift paints white."

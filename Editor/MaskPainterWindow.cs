@@ -39,6 +39,7 @@ namespace DocMe.MaskPainter.Editor
         [SerializeField] float strength = 1f;
         [SerializeField] MaskBlend blend;
         [SerializeField] bool mirror;
+        [SerializeField] bool paintsBlack;
         [SerializeField, UnityEngine.Serialization.FormerlySerializedAs("showMode")] MaskShow shown;
         [SerializeField] float overlayStrength = 0.6f;
         [SerializeField] string slot;
@@ -65,6 +66,32 @@ namespace DocMe.MaskPainter.Editor
 
         public bool IsPainting => session != null && session.IsLive;
         public MaskSession Session => session;
+
+        /// <summary>A click or stroke paints black, and Shift paints white; X swaps them.</summary>
+        public bool PaintsBlack
+        {
+            get => paintsBlack;
+            set
+            {
+                paintsBlack = value;
+                SceneView.RepaintAll();
+            }
+        }
+
+        public void SwapPaint() => PaintsBlack = !paintsBlack;
+
+        /// <summary>The value a fill or stroke paints now, with or without Shift, and how far it moves (amount).</summary>
+        public float PaintValue(bool shift, out float amount) => StrokeValue(blend, strength, shift != paintsBlack, out amount);
+
+        /// <summary>Takes the painted channel's grey under hit: Replace with that Grey level, painting it without Shift.</summary>
+        public void PickLevel(MaskHit hit)
+        {
+            if (!IsPainting || !session.IsValid(hit)) return;
+            blend = MaskBlend.Replace;
+            strength = session.ValueAt(hit);
+            paintsBlack = false;
+            SceneView.RepaintAll();
+        }
         public Renderer Target => target;
         /// <summary>The material slot Put into material fills, or null while none is picked.</summary>
         public string Slot => slot;
@@ -144,17 +171,17 @@ namespace DocMe.MaskPainter.Editor
             }
         }
 
-        /// <summary>The value a fill or stroke paints toward, and how far it goes (amount), for the blend, strength and Shift.</summary>
-        public static float StrokeValue(MaskBlend blend, float strength, bool shift, out float amount)
+        /// <summary>The value a fill or stroke paints toward, and how far it goes (amount), for the blend, strength and colour.</summary>
+        public static float StrokeValue(MaskBlend blend, float strength, bool black, out float amount)
         {
             strength = Mathf.Clamp01(strength);
             if (blend == MaskBlend.Replace)
             {
                 amount = 1f;
-                return shift ? 0f : strength;
+                return black ? 0f : strength;
             }
             amount = strength;
-            return shift ? 0f : 1f;
+            return black ? 0f : 1f;
         }
 
         [MenuItem("Tools/DocMe/Mask Painter")]
@@ -192,7 +219,8 @@ namespace DocMe.MaskPainter.Editor
 
         void OnDisable()
         {
-            if (Active == this) Active = null;
+            if (Active == this) Active = Resources.FindObjectsOfTypeAll<MaskPainterWindow>().FirstOrDefault(w => w != this);
+            MaskShortcuts.Sync();
             SceneView.duringSceneGui -= OnSceneGUI;
             Undo.undoRedoPerformed -= OnUndoRedo;
             ReleaseMouse();
@@ -386,6 +414,7 @@ namespace DocMe.MaskPainter.Editor
 
         void Refresh()
         {
+            MaskShortcuts.Sync();
             if (meshField == null) return;
             // A mesh that was deleted and brought back with Ctrl+Z picks up where it was.
             if (session != null && !session.IsLive && session.Renderer != null) session.Restore();
@@ -717,7 +746,12 @@ namespace DocMe.MaskPainter.Editor
                     UpdateHover(e);
                     e.Use();
                     if (!hoverValid) break;
-                    float value = StrokeValue(blend, strength, e.shift, out float amount);
+                    if (EditorGUI.actionKey)
+                    {
+                        PickLevel(hover);
+                        break;
+                    }
+                    float value = PaintValue(e.shift, out float amount);
                     if (tool == PaintTool.Fill) session.FillPiece(hover, value, amount);
                     else
                     {
@@ -760,6 +794,15 @@ namespace DocMe.MaskPainter.Editor
 
                 case EventType.KeyUp:
                     view.Repaint();
+                    break;
+
+                case EventType.ScrollWheel:
+                    if (tool == PaintTool.Brush && EditorGUI.actionKey && Mathf.Abs(e.delta.y) > 0f)
+                    {
+                        BrushCm = e.delta.y > 0f ? brushCm / 1.15f : brushCm * 1.15f;
+                        e.Use();
+                        view.Repaint();
+                    }
                     break;
 
                 case EventType.Repaint:
@@ -810,7 +853,7 @@ namespace DocMe.MaskPainter.Editor
             if (!hoverValid || tool != PaintTool.Brush || !session.IsValid(hover)) return;
             var normal = session.Mesh.NormalAt(hover);
             float radius = brushCm / 100f;
-            using (new Handles.DrawingScope(e.shift ? new Color(0.1f, 0.1f, 0.1f, 1f) : MaskLook.Tint(session.Channel)))
+            using (new Handles.DrawingScope(e.shift != paintsBlack ? new Color(0.1f, 0.1f, 0.1f, 1f) : MaskLook.Tint(session.Channel)))
             {
                 Handles.DrawWireDisc(hover.Point, normal, radius, 2f);
                 if (softness > 0.01f) Handles.DrawWireDisc(hover.Point, normal, radius * (1f - softness));
