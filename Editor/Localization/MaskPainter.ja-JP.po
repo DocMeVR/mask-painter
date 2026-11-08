@@ -288,9 +288,9 @@ msgstr "マテリアルのどのテクスチャスロットにマスクを入れ
 msgid "button.pickslot"
 msgstr "スロットを選ぶ"
 
-#. en: Opens a searchable list of the material's texture slots, mask slots first.
+#. en: Opens a search list of the material's texture slots, mask slots first.
 msgid "button.pickslot.tip"
-msgstr "マテリアルのテクスチャスロットを検索できる一覧を開きます。マスク用のスロットが先に並びます。"
+msgstr "マテリアルのテクスチャスロットを検索できる一覧で開きます。マスクのスロットが先に並びます。"
 
 #. en: {0}: click to pick another slot.
 msgid "button.pickslot.picked"
@@ -367,10 +367,6 @@ msgstr "保存"
 #. en: Quit without saving
 msgid "quit.discard"
 msgstr "保存せずに終了"
-
-#. en: Texture slots
-msgid "picker.title"
-msgstr "テクスチャスロット"
 
 #. en: Fill mask piece
 msgid "undo.fillpiece"
@@ -679,3 +675,27 @@ msgstr "マスクの継ぎ目をそろえる"
 #. en: Copy mask channel
 msgid "undo.copy"
 msgstr "マスクのチャンネルを写す"
+
+#. en: Type part of a name. Up, Down and Enter pick one.
+msgid "search.tip"
+msgstr "名前の一部を入力します。↑↓で移動し、Enterで選べます。"
+
+#. en: Search
+msgid "search.placeholder"
+msgstr "検索"
+
+#. en: Nothing matches "{0}"
+msgid "search.none"
+msgstr "「{0}」に合うものはありません"
+
+#. en: Mask slots
+msgid "picker.masks"
+msgstr "マスクのスロット"
+
+#. en: Other textures
+msgid "picker.other"
+msgstr "ほかのテクスチャ"
+
+#. en: empty
+msgid "picker.empty"
+msgstr "空"

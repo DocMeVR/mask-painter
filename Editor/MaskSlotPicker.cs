@@ -1,28 +1,18 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEditor.IMGUI.Controls;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace DocMe.MaskPainter.Editor
 {
     /// <summary>
-    /// Unity's searchable dropdown with a material's texture slots: the slots with Mask in their name first, then a
-    /// line, then every other slot, each named by its inspector label and its property name.
+    /// A material's texture slots in the DocMe search menu: the slots with Mask in their name first, then every other
+    /// slot, each named by its inspector label with the texture it holds beside it.
     /// </summary>
-    public sealed class MaskSlotPicker : AdvancedDropdown
+    public static class MaskSlotPicker
     {
-        readonly List<(string property, string label, bool mask)> items;
-        readonly Action<string> picked;
-
-        public MaskSlotPicker(Material material, Action<string> picked) : base(new AdvancedDropdownState())
-        {
-            items = Items(material);
-            this.picked = picked;
-            minimumSize = new Vector2(300f, 420f);
-        }
-
-        /// <summary>The material's texture slots in the order the picker lists them.</summary>
+        /// <summary>The material's texture slots in the order the menu lists them.</summary>
         public static List<(string property, string label, bool mask)> Items(Material material)
         {
             var slots = MaskFile.TextureSlots(material).Select(s =>
@@ -34,25 +24,41 @@ namespace DocMe.MaskPainter.Editor
             return slots.Where(s => s.mask).Concat(slots.Where(s => !s.mask)).ToList();
         }
 
-        protected override AdvancedDropdownItem BuildRoot()
+        /// <param name="current">The slot to tick, or null.</param>
+        /// <param name="onlyFilled">Greys out the slots that hold no texture, for opening a texture from one.</param>
+        public static List<MaskSearchMenu.Item> MenuItems(Material material, string current, bool onlyFilled, Action<string> picked)
         {
-            var root = new AdvancedDropdownItem(MaskText.T("picker.title"));
-            bool separated = false;
-            for (int i = 0; i < items.Count; i++)
+            var list = new List<MaskSearchMenu.Item>();
+            bool masks = false, others = false;
+            foreach (var slot in Items(material))
             {
-                if (!items[i].mask && !separated && i > 0)
+                if (slot.mask && !masks)
                 {
-                    root.AddSeparator();
-                    separated = true;
+                    list.Add(MaskSearchMenu.Item.Heading(MaskText.T("picker.masks")));
+                    masks = true;
                 }
-                root.AddChild(new AdvancedDropdownItem(items[i].label) { id = i });
+                if (!slot.mask && !others)
+                {
+                    list.Add(MaskSearchMenu.Item.Heading(MaskText.T("picker.other")));
+                    others = true;
+                }
+                var texture = material.GetTexture(slot.property);
+                var property = slot.property;
+                list.Add(new MaskSearchMenu.Item
+                {
+                    Text = MaskFile.SlotLabel(material, property),
+                    Note = texture != null ? texture.name : MaskText.T("picker.empty"),
+                    SearchText = property + " " + (texture != null ? texture.name : ""),
+                    Checked = property == current,
+                    Disabled = onlyFilled && texture == null,
+                    Action = () => picked(property),
+                });
             }
-            return root;
+            return list;
         }
 
-        protected override void ItemSelected(AdvancedDropdownItem item)
-        {
-            if (item.id >= 0 && item.id < items.Count) picked(items[item.id].property);
-        }
+        /// <summary>Opens the menu under button.</summary>
+        public static void Show(VisualElement button, Material material, string current, bool onlyFilled, Action<string> picked) =>
+            MaskSearchMenu.Open(button, MenuItems(material, current, onlyFilled, picked));
     }
 }

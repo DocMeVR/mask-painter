@@ -613,7 +613,7 @@ namespace DocMe.MaskPainter.Editor
         {
             var material = StartMaterial();
             if (material == null) return;
-            new MaskSlotPicker(material, picked =>
+            MaskSlotPicker.Show(fromSlotButton, material, slot, true, picked =>
             {
                 if (this == null) return;
                 var texture = MaskFile.TextureIn(material, picked);
@@ -625,19 +625,19 @@ namespace DocMe.MaskPainter.Editor
                     textureUnused = false;
                 }
                 Refresh();
-            }).Show(fromSlotButton.worldBound);
+            });
         }
 
         void PickSlot()
         {
             var material = CurrentMaterial();
             if (material == null) return;
-            new MaskSlotPicker(material, picked =>
+            MaskSlotPicker.Show(slotButton, material, slot, false, picked =>
             {
                 if (this == null) return;
                 slot = picked;
                 Refresh();
-            }).Show(slotButton.worldBound);
+            });
         }
 
         /// <summary>

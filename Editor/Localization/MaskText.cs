@@ -111,7 +111,6 @@ namespace DocMe.MaskPainter.Editor
             "quit.mesh",
             "quit.save",
             "quit.discard",
-            "picker.title",
             "undo.fillpiece",
             "undo.fillwhite",
             "undo.fillblack",
@@ -189,6 +188,12 @@ namespace DocMe.MaskPainter.Editor
             "button.seams.tip",
             "undo.seams",
             "undo.copy",
+            "search.tip",
+            "search.placeholder",
+            "search.none",
+            "picker.masks",
+            "picker.other",
+            "picker.empty",
         };
 
         public static string T(string key) => Find(key, MaskLanguage.Current);

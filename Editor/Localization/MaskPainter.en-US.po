@@ -217,7 +217,7 @@ msgid "button.pickslot"
 msgstr "Pick a slot"
 
 msgid "button.pickslot.tip"
-msgstr "Opens a searchable list of the material's texture slots, mask slots first."
+msgstr "Opens a search list of the material's texture slots, mask slots first."
 
 msgid "button.pickslot.picked"
 msgstr "{0}: click to pick another slot."
@@ -275,9 +275,6 @@ msgstr "Save"
 
 msgid "quit.discard"
 msgstr "Quit without saving"
-
-msgid "picker.title"
-msgstr "Texture slots"
 
 msgid "undo.fillpiece"
 msgstr "Fill mask piece"
@@ -509,3 +506,21 @@ msgstr "Even out mask seams"
 
 msgid "undo.copy"
 msgstr "Copy mask channel"
+
+msgid "search.tip"
+msgstr "Type part of a name. Up, Down and Enter pick one."
+
+msgid "search.placeholder"
+msgstr "Search"
+
+msgid "search.none"
+msgstr "Nothing matches \"{0}\""
+
+msgid "picker.masks"
+msgstr "Mask slots"
+
+msgid "picker.other"
+msgstr "Other textures"
+
+msgid "picker.empty"
+msgstr "empty"
