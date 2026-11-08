@@ -18,7 +18,7 @@ namespace DocMe.MaskPainter.Editor
         static readonly string[] SwatchClasses = { "docme-mp-swatch-all", "docme-mp-swatch-red", "docme-mp-swatch-green", "docme-mp-swatch-blue", "docme-mp-swatch-alpha" };
 
         DropdownField channelField, viewField;
-        Label channelHint, hint, strengthLabel;
+        Label channelHint, hint;
         Button[] toolItems, blendItems, paintItems, penItems;
         Slider brushField, softnessField, strengthField, overlayField;
         Toggle mirrorField, isolateField;
@@ -72,9 +72,8 @@ namespace DocMe.MaskPainter.Editor
             softnessField = new Slider(MaskText.T("field.softness"), 0f, 1f) { showInputField = true, tooltip = MaskText.T("field.softness.tip") };
             softnessField.RegisterValueChangedCallback(e => { if (Window != null) Window.Softness = e.newValue; });
             root.Add(softnessField);
-            strengthField = new Slider("", 0f, 1f) { showInputField = true };
+            strengthField = new Slider(MaskText.T("field.strength"), 0f, 1f) { showInputField = true };
             strengthField.RegisterValueChangedCallback(e => { if (Window != null) Window.Strength = e.newValue; });
-            strengthLabel = strengthField.labelElement;
             strengthRow = strengthField;
             root.Add(strengthField);
             penRow = MaskUI.Row(MaskText.T("row.pen"), MaskText.T("row.pen.tip"), MaskUI.Switches(out penItems,
@@ -166,7 +165,7 @@ namespace DocMe.MaskPainter.Editor
             MaskUI.SetSwitch(penItems[1], window.PressureStrength);
             MaskUI.Show(penRow, brush);
             bool replace = window.Blend == MaskBlend.Replace && !smooth;
-            strengthLabel.text = MaskText.T(replace ? "field.level" : "field.strength");
+            strengthField.label = MaskText.T(replace ? "field.level" : "field.strength");
             strengthField.tooltip = MaskText.T(replace ? "field.level.tip" : smooth ? "field.smooth.tip" : "field.strength.tip");
             strengthField.SetValueWithoutNotify(window.Strength);
             MaskUI.Show(strengthRow, painting);
