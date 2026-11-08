@@ -55,7 +55,7 @@ namespace DocMe.MaskPainter.Editor
         DropdownField materialField, uvField, startField, sizeField;
         Button startButton, saveButton, saveAsButton, putButton, slotButton, fromSlotButton;
         Label meshInfo, paintNote, clothesHint, savedLabel, statusLabel;
-        HelpBox meshWarning, materialWarning;
+        VisualElement meshWarning, materialWarning;
         VisualElement saveSection, slotPart, fromSlotRow;
 
         /// <summary>The open window the Scene view panel works with (the last one opened).</summary>
@@ -228,8 +228,8 @@ namespace DocMe.MaskPainter.Editor
             root.Add(MaskUI.Header(Rebuild));
             root.Add(MaskUI.Note(MaskText.T("intro.text")));
 
-            root.Add(MaskUI.Section(MaskText.T("section.mesh")));
-            meshField = new ObjectField(MaskText.T("field.mesh")) { objectType = typeof(Renderer), allowSceneObjects = true, tooltip = MaskText.T("field.mesh.tip") };
+            var setup = MaskUI.Card(root, MaskText.T("section.mesh"));
+            meshField =new ObjectField(MaskText.T("field.mesh")) { objectType = typeof(Renderer), allowSceneObjects = true, tooltip = MaskText.T("field.mesh.tip") };
             meshField.RegisterValueChangedCallback(e =>
             {
                 target = e.newValue as Renderer;
@@ -237,7 +237,7 @@ namespace DocMe.MaskPainter.Editor
                 slot = null;
                 Refresh();
             });
-            root.Add(meshField);
+            setup.Add(meshField);
             materialField = new DropdownField(MaskText.T("field.material")) { tooltip = MaskText.T("field.material.tip") };
             materialField.RegisterValueChangedCallback(_ =>
             {
@@ -245,64 +245,64 @@ namespace DocMe.MaskPainter.Editor
                 slot = null;
                 Refresh();
             });
-            root.Add(materialField);
+            setup.Add(materialField);
             uvField = new DropdownField(MaskText.T("field.uv"), UvChoices.ToList(), 0) { tooltip = MaskText.T("field.uv.tip") };
             uvField.RegisterValueChangedCallback(_ =>
             {
                 uvChannel = Mathf.Max(0, uvField.index);
                 Refresh();
             });
-            root.Add(uvField);
+            setup.Add(uvField);
             startField = new DropdownField(MaskText.T("field.start"), StartChoices.ToList(), 0) { tooltip = MaskText.T("field.start.tip") };
             startField.RegisterValueChangedCallback(_ =>
             {
                 start = (MaskStart)Mathf.Max(0, startField.index);
                 Refresh();
             });
-            root.Add(startField);
+            setup.Add(startField);
             textureField = new ObjectField(MaskText.T("field.texture")) { objectType = typeof(Texture2D), allowSceneObjects = false, tooltip = MaskText.T("field.texture.tip") };
             textureField.RegisterValueChangedCallback(e =>
             {
                 startTexture = e.newValue as Texture2D;
                 Refresh();
             });
-            root.Add(textureField);
+            setup.Add(textureField);
             fromSlotButton = MaskUI.Button(MaskText.T("button.fromslot"), MaskText.T("button.fromslot.tip"), PickStartSlot);
             fromSlotRow = MaskUI.Row("", "", MaskUI.Wrap(fromSlotButton));
-            root.Add(fromSlotRow);
+            setup.Add(fromSlotRow);
             sizeField = new DropdownField(MaskText.T("field.size"), Sizes.Select(s => s + " x " + s).ToList(), 1) { tooltip = MaskText.T("field.size.tip") };
             sizeField.RegisterValueChangedCallback(_ =>
             {
                 size = Sizes[Mathf.Max(0, sizeField.index)];
                 Refresh();
             });
-            root.Add(sizeField);
-            meshWarning = new HelpBox("", HelpBoxMessageType.Warning);
-            root.Add(meshWarning);
+            setup.Add(sizeField);
+            meshWarning = MaskUI.Message();
+            setup.Add(meshWarning);
             startButton = MaskUI.Button(MaskText.T("button.start"), MaskText.T("button.start.tip"), StartPainting);
             startButton.AddToClassList("docme-primary");
-            root.Add(startButton);
+            setup.Add(startButton);
             meshInfo = MaskUI.Note("");
-            root.Add(meshInfo);
+            setup.Add(meshInfo);
             paintNote = MaskUI.Note(MaskText.T("hint.panel"));
-            root.Add(paintNote);
+            setup.Add(paintNote);
             clothesHint = MaskUI.Note(MaskText.T("hint.clothes"));
-            root.Add(clothesHint);
+            setup.Add(clothesHint);
 
             saveSection = new VisualElement();
             root.Add(saveSection);
-            saveSection.Add(MaskUI.Section(MaskText.T("section.save")));
+            var saveCard = MaskUI.Card(saveSection, MaskText.T("section.save"));
             savedLabel = MaskUI.Note("");
-            saveSection.Add(savedLabel);
+            saveCard.Add(savedLabel);
             saveButton = MaskUI.Button(MaskText.T("button.save"), MaskText.T("button.save.tip"), () => Save());
             saveAsButton = MaskUI.Button(MaskText.T("button.saveas"), MaskText.T("button.saveas.tip"), () => SaveAs());
-            saveSection.Add(MaskUI.Row(MaskText.T("row.file"), MaskText.T("row.file.tip"), MaskUI.Wrap(saveButton, saveAsButton)));
+            saveCard.Add(MaskUI.Row(MaskText.T("row.file"), MaskText.T("row.file.tip"), MaskUI.Wrap(saveButton, saveAsButton)));
             slotPart = new VisualElement();
-            saveSection.Add(slotPart);
+            saveCard.Add(slotPart);
             slotButton = MaskUI.Button(MaskText.T("button.pickslot"), MaskText.T("button.pickslot.tip"), PickSlot);
             slotButton.AddToClassList("docme-mp-picker");
             slotPart.Add(MaskUI.Row(MaskText.T("row.slot"), MaskText.T("row.slot.tip"), slotButton));
-            materialWarning = new HelpBox("", HelpBoxMessageType.Info);
+            materialWarning = MaskUI.Message();
             slotPart.Add(materialWarning);
             putButton = MaskUI.Button(MaskText.T("button.put"), MaskText.T("button.put.tip"), PutIntoMaterial);
             putButton.AddToClassList("docme-primary");
@@ -347,8 +347,7 @@ namespace DocMe.MaskPainter.Editor
             MaskUI.Show(sizeField, start != MaskStart.Texture);
 
             var problem = MeshProblem();
-            meshWarning.text = problem ?? "";
-            MaskUI.Show(meshWarning, problem != null);
+            MaskUI.SetMessage(meshWarning, problem, HelpBoxMessageType.Warning);
             startButton.SetEnabled(problem == null && (start != MaskStart.Texture || startTexture != null));
             startButton.text = MaskText.T(painting ? "button.startover" : "button.start");
             meshInfo.text = live ? Describe(session)
@@ -391,8 +390,7 @@ namespace DocMe.MaskPainter.Editor
                 note = MaskText.T("note.lockedempty");
             else if (MaskFile.IsLocked(material))
                 note = MaskText.T("note.locked");
-            materialWarning.text = note ?? "";
-            MaskUI.Show(materialWarning, note != null);
+            MaskUI.SetMessage(materialWarning, note, HelpBoxMessageType.Info);
             putButton.SetEnabled(ownFile && slotIndex >= 0);
         }
 

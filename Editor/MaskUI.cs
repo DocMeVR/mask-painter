@@ -104,5 +104,46 @@ namespace DocMe.MaskPainter.Editor
         }
 
         public static void Show(VisualElement element, bool visible) => element.EnableInClassList("docme-hidden", !visible);
+
+        /// <summary>A section's header and the card under it; returns the card.</summary>
+        public static VisualElement Card(VisualElement parent, string title)
+        {
+            parent.Add(Section(title));
+            var card = new VisualElement();
+            card.AddToClassList("docme-panel");
+            parent.Add(card);
+            return card;
+        }
+
+        /// <summary>An empty, hidden message row; SetMessage fills it.</summary>
+        public static VisualElement Message()
+        {
+            var row = new VisualElement();
+            row.AddToClassList("docme-message");
+            var icon = new Image();
+            icon.AddToClassList("docme-message-icon");
+            row.Add(icon);
+            var body = new VisualElement();
+            body.AddToClassList("docme-message-body");
+            var text = new Label();
+            text.AddToClassList("docme-message-text");
+            body.Add(text);
+            row.Add(body);
+            Show(row, false);
+            return row;
+        }
+
+        /// <summary>Shows text in a message row with the tint and icon of its kind; no text hides the row.</summary>
+        public static void SetMessage(VisualElement row, string text, HelpBoxMessageType kind)
+        {
+            Show(row, !string.IsNullOrEmpty(text));
+            if (string.IsNullOrEmpty(text)) return;
+            row.EnableInClassList("docme-message-info", kind != HelpBoxMessageType.Warning && kind != HelpBoxMessageType.Error);
+            row.EnableInClassList("docme-message-warn", kind == HelpBoxMessageType.Warning);
+            row.EnableInClassList("docme-message-error", kind == HelpBoxMessageType.Error);
+            row.Q<Label>(className: "docme-message-text").text = text;
+            var icon = kind == HelpBoxMessageType.Error ? "console.erroricon.sml" : kind == HelpBoxMessageType.Warning ? "console.warnicon.sml" : "console.infoicon.sml";
+            row.Q<Image>(className: "docme-message-icon").image = EditorGUIUtility.IconContent(icon).image;
+        }
     }
 }
