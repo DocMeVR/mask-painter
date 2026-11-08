@@ -59,10 +59,6 @@ The letter keys work only while a painting is open and the Scene view has focus.
 
 Nothing on your avatar changes while you paint. The overlay is drawn by the window, not by your materials. **Save** writes one PNG, imported as a linear (sRGB off), clamped texture at its full size, because a mask holds amounts rather than colours. On PC it gets the format that keeps what you painted with smooth gradients at the smallest size: BC4 when only red holds paint, BC5 for red and green, BC7 for anything else (a grey mask too). Quest and other platforms keep Unity's format, unless it would drop a channel you painted. A painted alpha is kept as an amount, never as see-through. **Put into material** sets one texture slot of one material, and Ctrl+Z takes it out again.
 
-## How this was made
-
-The code in this repository was written by AI (Claude, by Anthropic). The idea, the design, every feature, the testing on real avatars and the decisions on how it should behave are mine (DocMe). I planned it and directed the work; the AI typed it out. Bug reports and pull requests are welcome, and anything that gets merged goes through my own review.
-
 ## License
 
 MIT. See `LICENSE.md`.
