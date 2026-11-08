@@ -24,8 +24,8 @@ namespace DocMe.MaskPainter.Editor
         [NonSerialized] Mesh preview;
         [NonSerialized] Texture2D texture;
         [NonSerialized] Texture2D patch;
+        [NonSerialized] byte[] patchBytes, rowBytes;
         [NonSerialized] Matrix4x4 bakedAt;
-        [NonSerialized] float[] strokeBefore;
         [NonSerialized] Vector3 lastDab;
         [NonSerialized] Vector3 strokeFacing;
         [NonSerialized] float strokeRadius, strokeSoftness, strokeValue, strokeStrength;
@@ -34,6 +34,8 @@ namespace DocMe.MaskPainter.Editor
         [NonSerialized] float strokeBaseRadius, strokeBaseStrength;
         [NonSerialized] int smoothKernel;
         [NonSerialized] Vector3 lastMirrorDab;
+        /// <summary>The radius and strength of the last step on each side, to tell when the next one continues it.</summary>
+        [NonSerialized] Vector2 lastStep, lastMirrorStep;
 
         /// <summary>
         /// When set, every fill and stroke is also made at the mirrored point of the model (see MirrorAcross). Not kept
@@ -58,7 +60,7 @@ namespace DocMe.MaskPainter.Editor
         /// <summary>Whether there is a painting at all, even while its mesh is gone.</summary>
         public bool HasPainting => Canvas != null && Canvas.Values != null && Canvas.Values.Length > 0;
         public bool IsLive => mesh != null && HasPainting && Renderer != null;
-        public bool IsStroking => strokeBefore != null;
+        public bool IsStroking => Canvas != null && Canvas.IsStroking;
 
         /// <summary>The material the mask is for, or null.</summary>
         public Material Material
@@ -301,7 +303,7 @@ namespace DocMe.MaskPainter.Editor
         {
             if (IsStroking) EndStroke();
             if (!IsValid(hit)) return;
-            strokeBefore = Canvas.BeginStroke();
+            Canvas.BeginStroke();
             smoothing = false;
             strokeBaseRadius = radius;
             strokeSoftness = softness;
@@ -327,10 +329,10 @@ namespace DocMe.MaskPainter.Editor
             if (jump)
             {
                 lastDab = hit.Point;
-                Stamp(new[] { hit.Point }, strokeFacing);
+                Stamp(new[] { hit.Point }, strokeFacing, ref lastStep, false);
             }
             else if (SegmentTo(ref lastDab, hit.Point, out var segment))
-                Stamp(segment, strokeFacing);
+                Stamp(segment, strokeFacing, ref lastStep, true);
             MirrorStroke(hit, jump);
         }
 
@@ -346,10 +348,10 @@ namespace DocMe.MaskPainter.Editor
             if (jump || !mirrorStroking)
             {
                 lastMirrorDab = mirrored.Point;
-                Stamp(new[] { mirrored.Point }, facing);
+                Stamp(new[] { mirrored.Point }, facing, ref lastMirrorStep, false);
             }
             else if (SegmentTo(ref lastMirrorDab, mirrored.Point, out var segment))
-                Stamp(segment, facing);
+                Stamp(segment, facing, ref lastMirrorStep, true);
             mirrorStroking = true;
         }
 
@@ -368,7 +370,7 @@ namespace DocMe.MaskPainter.Editor
         {
             if (IsStroking) EndStroke();
             if (!IsValid(hit)) return;
-            strokeBefore = Canvas.BeginStroke();
+            Canvas.BeginStroke();
             smoothing = true;
             strokeBaseRadius = radius;
             strokeSoftness = softness;
@@ -390,19 +392,23 @@ namespace DocMe.MaskPainter.Editor
             strokeStrength = strokeBaseStrength * Mathf.Clamp01(strengthScale);
         }
 
-        void Stamp(IReadOnlyList<Vector3> path, Vector3 facing)
+        void Stamp(IReadOnlyList<Vector3> path, Vector3 facing) => Stamp(path, facing, ref lastStep, false);
+
+        /// <param name="last">This side's last radius and strength; a segment continues it when the pen did not change them.</param>
+        void Stamp(IReadOnlyList<Vector3> path, Vector3 facing, ref Vector2 last, bool segment)
         {
+            var step = new Vector2(strokeRadius, strokeStrength);
+            bool continues = segment && step == last;
+            last = step;
             if (smoothing) Canvas.Smooth(path, strokeRadius, strokeSoftness, strokeStrength, facing, smoothKernel);
-            else Canvas.BrushPath(path, strokeRadius, strokeSoftness, strokeValue, strokeStrength, facing);
+            else Canvas.BrushPath(path, strokeRadius, strokeSoftness, strokeValue, strokeStrength, facing, continues);
         }
 
         public void EndStroke()
         {
             if (!IsStroking) return;
-            Canvas.EndStroke();
-            var before = strokeBefore;
-            strokeBefore = null;
-            Record(MaskText.T(smoothing ? "undo.smooth" : "undo.paint"), before);
+            Canvas.EndStroke(out var parts);
+            if (parts.Count > 0) Record(MaskText.T(smoothing ? "undo.smooth" : "undo.paint"), parts);
         }
 
         void Record(string name, float[] before) => Record(name, new RectInt(0, 0, Canvas.Width, Canvas.Height), before);
@@ -415,10 +421,12 @@ namespace DocMe.MaskPainter.Editor
             Canvas.SelectChannel(channel);
         }
 
-        void Record(string name, RectInt area, float[] before)
+        void Record(string name, RectInt area, float[] before) => Record(name, new[] { (area, before) });
+
+        void Record(string name, IReadOnlyList<(RectInt area, float[] before)> parts)
         {
             Undo.RecordObject(data.UndoMarker, name);
-            if (!history.Commit(area, before, Canvas)) return;
+            if (!history.Commit(parts, Canvas)) return;
             data.UndoMarker.Step = history.Position;
             data.Unsaved = true;
         }
@@ -430,12 +438,7 @@ namespace DocMe.MaskPainter.Editor
         public void FollowUndo()
         {
             if (!IsLive) return;
-            if (IsStroking)
-            {
-                Canvas.EndStroke();
-                Canvas.Load(strokeBefore);
-                strokeBefore = null;
-            }
+            if (IsStroking) Canvas.CancelStroke();
             if (history.Position == data.UndoMarker.Step) return;
             history.MoveTo(data.UndoMarker.Step, Canvas);
             data.Unsaved = true;
@@ -484,48 +487,78 @@ namespace DocMe.MaskPainter.Editor
 
         /// <summary>
         /// Converts the changed rectangle: every channel as the canvas holds it, with the painted one taken from the
-        /// values the way Commit writes them. Only that rectangle goes to the graphics card.
+        /// values the way Commit writes them. Only that rectangle goes to the graphics card, in bands of rows through a
+        /// patch texture that only grows, so painting allocates nothing once it has its size.
         /// </summary>
         void Upload(RectInt rect)
         {
             var pixels = texture.GetPixelData<byte>(0);
-            var values = Canvas.Values;
-            var source = Canvas.Pixels;
             int width = Canvas.Width;
-            var channel = Canvas.Channel;
-            int offset = MaskLook.Offset(channel);
-            for (int y = rect.yMin; y < rect.yMax; y++)
-                for (int x = rect.xMin; x < rect.xMax; x++)
-                {
-                    int i = y * width + x, p = 4 * i;
-                    byte v = (byte)Mathf.RoundToInt(Mathf.Clamp01(values[i]) * 255f);
-                    for (int c = 0; c < 4; c++) pixels[p + c] = source[p + c];
-                    if (channel != MaskChannel.All) pixels[p + offset] = v;
-                    else if (v != source[p]) pixels[p] = pixels[p + 1] = pixels[p + 2] = v;
-                }
-            SendToGraphicsCard(rect);
-            PreviewVersion++;
-        }
-
-        /// <summary>Copies one rectangle of the preview's pixels to the graphics card; the whole texture when that cannot be done.</summary>
-        void SendToGraphicsCard(RectInt rect)
-        {
             bool whole = rect.width >= Canvas.Width && rect.height >= Canvas.Height;
             if (whole || SystemInfo.copyTextureSupport == UnityEngine.Rendering.CopyTextureSupport.None)
             {
+                Buffer(ref rowBytes, 4 * rect.width);
+                for (int y = rect.yMin; y < rect.yMax; y++)
+                {
+                    Compose(rect.xMin, y, rect.width, rowBytes, 0);
+                    Unity.Collections.NativeArray<byte>.Copy(rowBytes, 0, pixels, 4 * (y * width + rect.xMin), 4 * rect.width);
+                }
                 texture.Apply(false);
+                PreviewVersion++;
                 return;
             }
-            if (patch == null)
-                patch = new Texture2D(rect.width, rect.height, TextureFormat.RGBA32, false, true) { name = "Mask Painter Patch", hideFlags = HideFlags.HideAndDontSave };
-            else if (patch.width != rect.width || patch.height != rect.height) patch.Reinitialize(rect.width, rect.height);
-            var from = texture.GetPixelData<byte>(0);
-            var to = patch.GetPixelData<byte>(0);
-            int width = Canvas.Width;
-            for (int y = 0; y < rect.height; y++)
-                Unity.Collections.NativeArray<byte>.Copy(from, 4 * ((rect.y + y) * width + rect.x), to, 4 * y * rect.width, 4 * rect.width);
-            patch.Apply(false);
-            Graphics.CopyTexture(patch, 0, 0, 0, 0, rect.width, rect.height, texture, 0, 0, rect.x, rect.y);
+            for (int top = rect.yMin; top < rect.yMax; top += PatchRows)
+            {
+                int rows = Mathf.Min(PatchRows, rect.yMax - top);
+                GrowPatch(rect.width, rows);
+                int stride = patch.width;
+                Buffer(ref patchBytes, 4 * patch.width * patch.height);
+                for (int y = 0; y < rows; y++)
+                {
+                    Compose(rect.xMin, top + y, rect.width, patchBytes, 4 * y * stride);
+                    // The texture keeps its own copy too, for a full upload later.
+                    Unity.Collections.NativeArray<byte>.Copy(patchBytes, 4 * y * stride, pixels, 4 * ((top + y) * width + rect.xMin), 4 * rect.width);
+                }
+                patch.SetPixelData(patchBytes, 0);
+                patch.Apply(false);
+                Graphics.CopyTexture(patch, 0, 0, 0, 0, rect.width, rows, texture, 0, 0, rect.xMin, top);
+            }
+            PreviewVersion++;
+        }
+
+        const int PatchRows = 256;
+
+        /// <summary>Writes count texels of row y from x on into bytes at offset: the canvas's channels with the painted one from its values.</summary>
+        void Compose(int x, int y, int count, byte[] bytes, int offset)
+        {
+            var values = Canvas.Values;
+            var source = Canvas.Pixels;
+            int from = y * Canvas.Width + x;
+            System.Buffer.BlockCopy(source, 4 * from, bytes, offset, 4 * count);
+            var channel = Canvas.Channel;
+            int channelOffset = MaskLook.Offset(channel);
+            for (int k = 0; k < count; k++)
+            {
+                int i = from + k, p = offset + 4 * k;
+                byte v = (byte)Mathf.RoundToInt(Mathf.Clamp01(values[i]) * 255f);
+                if (channel != MaskChannel.All) bytes[p + channelOffset] = v;
+                else if (v != source[4 * i]) bytes[p] = bytes[p + 1] = bytes[p + 2] = v;
+            }
+        }
+
+        /// <summary>Makes the patch at least width x rows texels, rounded up to 64, keeping it when it is big enough.</summary>
+        void GrowPatch(int width, int rows)
+        {
+            if (patch != null && patch.width >= width && patch.height >= rows) return;
+            int w = Mathf.Max(patch != null ? patch.width : 0, (width + 63) / 64 * 64);
+            int h = Mathf.Max(patch != null ? patch.height : 0, (rows + 63) / 64 * 64);
+            if (patch != null) Object.DestroyImmediate(patch);
+            patch = new Texture2D(w, h, TextureFormat.RGBA32, false, true) { name = "Mask Painter Patch", hideFlags = HideFlags.HideAndDontSave };
+        }
+
+        static void Buffer(ref byte[] buffer, int size)
+        {
+            if (buffer == null || buffer.Length != size) buffer = new byte[size];
         }
 
         public Texture2D Save(string assetPath)

@@ -4,8 +4,8 @@ using UnityEngine;
 namespace DocMe.MaskPainter.Editor
 {
     /// <summary>
-    /// The painter's own undo steps: for each fill or stroke, the rectangle it changed with every channel's bytes before
-    /// and after, and the channel it was painted in. Unity's Undo only records a step number on a small object, so Ctrl+Z
+    /// The painter's own undo steps: for each fill or stroke, the rectangles it changed (a stroke keeps one per tile it
+    /// reached) with every channel's bytes before and after, and the channel it was painted in. Unity's Undo only records a step number on a small object, so Ctrl+Z
     /// never copies the whole mask. Positions count steps; the history starts at the number Unity's Undo holds now, so
     /// steps stay in line with it.
     /// </summary>
@@ -13,11 +13,11 @@ namespace DocMe.MaskPainter.Editor
     {
         sealed class Step
         {
-            public RectInt Rect;
+            public RectInt[] Rects;
             public MaskChannel Channel;
-            public byte[] Before;
-            public byte[] After;
-            public long Bytes => 2L * Before.Length;
+            public byte[][] Before;
+            public byte[][] After;
+            public long Bytes;
         }
 
         /// <summary>The memory the steps may use; the oldest go first past it.</summary>
@@ -42,7 +42,43 @@ namespace DocMe.MaskPainter.Editor
         /// The same for a change that stayed inside area, with before holding only that area's values. The change is
         /// written into the canvas's channels here, so the step holds them as they were and as they are.
         /// </summary>
-        public bool Commit(RectInt area, float[] before, MaskCanvas canvas)
+        public bool Commit(RectInt area, float[] before, MaskCanvas canvas) => Commit(new[] { (area, before) }, canvas);
+
+        /// <summary>The same for a change in several areas that do not overlap, each with its own values before, as one step.</summary>
+        public bool Commit(IReadOnlyList<(RectInt area, float[] before)> parts, MaskCanvas canvas)
+        {
+            var rects = new List<RectInt>();
+            foreach (var (area, before) in parts)
+                if (Changed(area, before, canvas, out var rect)) rects.Add(rect);
+            if (rects.Count == 0) return false;
+
+            for (int k = steps.Count - 1; k >= Position - first; k--)
+            {
+                bytes -= steps[k].Bytes;
+                steps.RemoveAt(k);
+            }
+            var step = new Step { Rects = rects.ToArray(), Channel = canvas.Channel, Before = new byte[rects.Count][], After = new byte[rects.Count][] };
+            for (int k = 0; k < rects.Count; k++)
+            {
+                step.Before[k] = canvas.PixelsIn(rects[k]);
+                canvas.Commit(rects[k]);
+                step.After[k] = canvas.PixelsIn(rects[k]);
+                step.Bytes += 2L * step.Before[k].Length;
+            }
+            steps.Add(step);
+            bytes += step.Bytes;
+            Position++;
+            while (bytes > Budget && steps.Count > 1)
+            {
+                bytes -= steps[0].Bytes;
+                steps.RemoveAt(0);
+                first++;
+            }
+            return true;
+        }
+
+        /// <summary>The smallest rectangle inside area where the canvas differs from before (area's values, row by row).</summary>
+        static bool Changed(RectInt area, float[] before, MaskCanvas canvas, out RectInt rect)
         {
             int w = canvas.Width;
             var now = canvas.Values;
@@ -59,27 +95,8 @@ namespace DocMe.MaskPainter.Editor
                     maxY = y;
                 }
             }
-            if (maxX < 0) return false;
-
-            for (int k = steps.Count - 1; k >= Position - first; k--)
-            {
-                bytes -= steps[k].Bytes;
-                steps.RemoveAt(k);
-            }
-            var rect = new RectInt(minX, minY, maxX - minX + 1, maxY - minY + 1);
-            var step = new Step { Rect = rect, Channel = canvas.Channel, Before = canvas.PixelsIn(rect) };
-            canvas.Commit(rect);
-            step.After = canvas.PixelsIn(rect);
-            steps.Add(step);
-            bytes += step.Bytes;
-            Position++;
-            while (bytes > Budget && steps.Count > 1)
-            {
-                bytes -= steps[0].Bytes;
-                steps.RemoveAt(0);
-                first++;
-            }
-            return true;
+            rect = maxX < 0 ? default : new RectInt(minX, minY, maxX - minX + 1, maxY - minY + 1);
+            return maxX >= 0;
         }
 
         /// <summary>
@@ -93,14 +110,14 @@ namespace DocMe.MaskPainter.Editor
             {
                 var step = steps[Position - first - 1];
                 Show(step, canvas);
-                canvas.RestorePixels(step.Rect, step.Before);
+                for (int k = 0; k < step.Rects.Length; k++) canvas.RestorePixels(step.Rects[k], step.Before[k]);
                 Position--;
             }
             while (Position < position)
             {
                 var step = steps[Position - first];
                 Show(step, canvas);
-                canvas.RestorePixels(step.Rect, step.After);
+                for (int k = 0; k < step.Rects.Length; k++) canvas.RestorePixels(step.Rects[k], step.After[k]);
                 Position++;
             }
         }

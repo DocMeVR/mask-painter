@@ -32,10 +32,29 @@ namespace DocMe.MaskPainter.Editor
         [NonSerialized] MaskMesh mesh;
         [NonSerialized] int[] owner;
         [NonSerialized] RectInt[] islandRects;
-        [NonSerialized] float[] strokeStart;
-        [NonSerialized] float[] strokeWeight;
+        /// <summary>The side of the square tiles a stroke keeps its start values and weights in.</summary>
+        const int Tile = 64;
+        [NonSerialized] bool stroking;
+        [NonSerialized] int tilesX;
+        [NonSerialized] float[][] tileStart, tileWeight;
+        [NonSerialized] List<int> savedTiles;
+        [NonSerialized] Stack<float[]> tilePool;
         [NonSerialized] bool hasChanged;
         [NonSerialized] RectInt changed;
+        [NonSerialized] int[] borderRowStart;
+        [NonSerialized] int[] borderX;
+        // Reused from one brush step to the next, so painting allocates nothing.
+        [NonSerialized] List<int> nearBuffer;
+        [NonSerialized] Vector3[] pathBuffer;
+        [NonSerialized] int[] visitBuffer;
+        [NonSerialized] int visitMark;
+        [NonSerialized] int[] hitIndex;
+        [NonSerialized] float[] hitWeight;
+        [NonSerialized] int hitCount;
+        [NonSerialized] int[] bleedMark, bleedDistance, bleedQueue;
+        [NonSerialized] int bleedPass;
+        [NonSerialized] float[] blurAcross, blurDone;
+        [NonSerialized] double[] blurPrefix;
 
         public MaskCanvas(int width, int height, float fill)
         {
@@ -211,26 +230,126 @@ namespace DocMe.MaskPainter.Editor
 
         /// <summary>
         /// Starts a stroke: until EndStroke, each texel keeps the strongest brush weight it got, so dabs that overlap
-        /// along a drag do not build up the soft edge. Returns the values before the stroke.
+        /// along a drag do not build up the soft edge. The values before the stroke are kept tile by tile, as the stroke
+        /// first reaches each tile, so starting one costs nothing however big the canvas is.
         /// </summary>
-        public float[] BeginStroke()
+        public void BeginStroke()
         {
-            strokeStart = Snapshot();
-            strokeWeight = new float[Values.Length];
-            return strokeStart;
+            if (stroking) ReleaseTiles();
+            stroking = true;
+            tilesX = (Width + Tile - 1) / Tile;
+            int count = tilesX * ((Height + Tile - 1) / Tile);
+            if (tileStart == null || tileStart.Length != count)
+            {
+                tileStart = new float[count][];
+                tileWeight = new float[count][];
+            }
+            if (savedTiles == null) savedTiles = new List<int>();
+            if (tilePool == null) tilePool = new Stack<float[]>();
         }
 
-        public void EndStroke()
+        public bool IsStroking => stroking;
+
+        public void EndStroke() => EndStroke(out _);
+
+        /// <summary>
+        /// Ends a stroke. parts holds, for each tile it reached, the tile's rectangle and its values from before the
+        /// stroke, row by row, for one Undo step; empty when it reached none.
+        /// </summary>
+        public void EndStroke(out List<(RectInt area, float[] before)> parts)
         {
-            strokeStart = null;
-            strokeWeight = null;
+            parts = new List<(RectInt, float[])>();
+            if (!stroking) return;
+            stroking = false;
+            foreach (int tile in savedTiles)
+            {
+                var rect = TileRect(tile);
+                var start = tileStart[tile];
+                float[] before;
+                if (rect.width == Tile && rect.height == Tile)
+                {
+                    // The step keeps this array, so the pool lets go of it.
+                    before = start;
+                    tileStart[tile] = null;
+                }
+                else
+                {
+                    before = new float[rect.width * rect.height];
+                    for (int y = 0; y < rect.height; y++) Array.Copy(start, y * Tile, before, y * rect.width, rect.width);
+                }
+                parts.Add((rect, before));
+            }
+            ReleaseTiles();
         }
 
-        /// <summary>Puts every value back to an earlier snapshot of the whole canvas.</summary>
-        public void Load(float[] values)
+        /// <summary>Drops a stroke being painted: every texel it changed gets its value from before it back.</summary>
+        public void CancelStroke()
         {
-            Array.Copy(values, Values, Values.Length);
-            MarkChanged(All);
+            if (!stroking) return;
+            stroking = false;
+            if (savedTiles.Count > 0)
+            {
+                foreach (int tile in savedTiles)
+                {
+                    var rect = TileRect(tile);
+                    for (int y = 0; y < rect.height; y++)
+                        Array.Copy(tileStart[tile], y * Tile, Values, (rect.y + y) * Width + rect.x, rect.width);
+                }
+                MarkChanged(SavedArea());
+            }
+            ReleaseTiles();
+        }
+
+        RectInt TileRect(int tile)
+        {
+            int x = tile % tilesX * Tile, y = tile / tilesX * Tile;
+            return new RectInt(x, y, Mathf.Min(Tile, Width - x), Mathf.Min(Tile, Height - y));
+        }
+
+        RectInt SavedArea()
+        {
+            int x0 = Width, y0 = Height, x1 = 0, y1 = 0;
+            foreach (int tile in savedTiles)
+            {
+                var rect = TileRect(tile);
+                x0 = Mathf.Min(x0, rect.xMin);
+                y0 = Mathf.Min(y0, rect.yMin);
+                x1 = Mathf.Max(x1, rect.xMax);
+                y1 = Mathf.Max(y1, rect.yMax);
+            }
+            return new RectInt(x0, y0, x1 - x0, y1 - y0);
+        }
+
+        /// <summary>Keeps the values of every tile in area that the stroke has not reached yet, and starts its weights at 0.</summary>
+        void SaveTiles(RectInt area)
+        {
+            if (!stroking || area.width <= 0 || area.height <= 0) return;
+            for (int ty = area.yMin / Tile; ty <= (area.yMax - 1) / Tile; ty++)
+                for (int tx = area.xMin / Tile; tx <= (area.xMax - 1) / Tile; tx++)
+                {
+                    int tile = ty * tilesX + tx;
+                    if (tileStart[tile] != null) continue;
+                    var start = tilePool.Count > 0 ? tilePool.Pop() : new float[Tile * Tile];
+                    var weight = tilePool.Count > 0 ? tilePool.Pop() : new float[Tile * Tile];
+                    Array.Clear(weight, 0, weight.Length);
+                    var rect = TileRect(tile);
+                    for (int y = 0; y < rect.height; y++)
+                        Array.Copy(Values, (rect.y + y) * Width + rect.x, start, y * Tile, rect.width);
+                    tileStart[tile] = start;
+                    tileWeight[tile] = weight;
+                    savedTiles.Add(tile);
+                }
+        }
+
+        void ReleaseTiles()
+        {
+            foreach (int tile in savedTiles)
+            {
+                if (tileStart[tile] != null) tilePool.Push(tileStart[tile]);
+                tilePool.Push(tileWeight[tile]);
+                tileStart[tile] = tileWeight[tile] = null;
+            }
+            savedTiles.Clear();
         }
 
         /// <summary>The area changed since the last call, if any, so a preview uploads only that part.</summary>
@@ -381,6 +500,7 @@ namespace DocMe.MaskPainter.Editor
             islandRects = new RectInt[min.Length];
             for (int k = 0; k < min.Length; k++)
                 islandRects[k] = max[k].x < 0 ? new RectInt(0, 0, 0, 0) : new RectInt(min[k].x, min[k].y, max[k].x - min[k].x + 1, max[k].y - min[k].y + 1);
+            FindBorders();
         }
 
         public bool IsBound => mesh != null;
@@ -422,19 +542,31 @@ namespace DocMe.MaskPainter.Editor
         /// Brush along the line through centres: each texel's weight comes from its distance to the nearest piece of the
         /// line, so a stroke is even along its length instead of a row of round dabs.
         /// </summary>
-        public void BrushPath(IReadOnlyList<Vector3> centres, float radius, float softness, float value, float strength = 1f, Vector3 facing = default)
+        /// <param name="continues">
+        /// In a stroke, a step of two centres whose first is where the last step ended, with the same radius, softness,
+        /// value and strength: the texels behind its start cannot get stronger than that step left them, so they are
+        /// skipped (about half of a short step).
+        /// </param>
+        public void BrushPath(IReadOnlyList<Vector3> centres, float radius, float softness, float value, float strength = 1f, Vector3 facing = default, bool continues = false)
         {
-            var touched = new List<(int index, float weight)>();
-            if (!Reach(centres, radius, softness, facing, touched, out var painted)) return;
-            foreach (var (i, weight) in touched)
+            if (!Reach(centres, radius, softness, facing, out var painted, continues && stroking && centres.Count == 2)) return;
+            SaveTiles(Grow(painted, Bleed));
+            for (int k = 0; k < hitCount; k++)
             {
-                float amount = Mathf.Clamp01(weight * strength);
-                if (strokeStart == null) Values[i] += (value - Values[i]) * amount;
-                else if (amount > strokeWeight[i])
+                int i = hitIndex[k];
+                float amount = Mathf.Clamp01(hitWeight[k] * strength);
+                if (!stroking)
                 {
-                    strokeWeight[i] = amount;
-                    Values[i] = strokeStart[i] + (value - strokeStart[i]) * amount;
+                    Values[i] += (value - Values[i]) * amount;
+                    continue;
                 }
+                int x = i % Width, y = i / Width;
+                int tile = y / Tile * tilesX + x / Tile, local = y % Tile * Tile + x % Tile;
+                var weights = tileWeight[tile];
+                if (amount <= weights[local]) continue;
+                weights[local] = amount;
+                float start = tileStart[tile][local];
+                Values[i] = start + (value - start) * amount;
             }
             BleedIntoGaps(painted);
             MarkChanged(Grow(painted, Bleed));
@@ -447,108 +579,275 @@ namespace DocMe.MaskPainter.Editor
         /// </summary>
         public void Smooth(IReadOnlyList<Vector3> centres, float radius, float softness, float strength, Vector3 facing, int kernel)
         {
-            var touched = new List<(int index, float weight)>();
-            if (!Reach(centres, radius, softness, facing, touched, out var painted)) return;
+            if (!Reach(centres, radius, softness, facing, out var painted, false)) return;
+            SaveTiles(Grow(painted, Bleed));
             var area = Grow(painted, kernel);
             int w = area.width, h = area.height, x0 = area.xMin, y0 = area.yMin;
-            var across = new float[w * h];
-            var prefix = new double[Mathf.Max(w, h) + 1];
+            var across = Cleared(ref blurAcross, w * h);
+            var blurred = Cleared(ref blurDone, w * h);
+            if (blurPrefix == null || blurPrefix.Length < Mathf.Max(w, h) + 1) blurPrefix = new double[Mathf.Max(w, h) + 1];
             for (int y = 0; y < h; y++)
-                BlurRun(w, k => (y0 + y) * Width + x0 + k, k => Values[(y0 + y) * Width + x0 + k], (k, v) => across[y * w + k] = v, kernel, prefix);
-            var blurred = new float[w * h];
-            for (int x = 0; x < w; x++)
-                BlurRun(h, k => (y0 + k) * Width + x0 + x, k => across[k * w + x], (k, v) => blurred[k * w + x] = v, kernel, prefix);
-            foreach (var (i, weight) in touched)
             {
+                int row = (y0 + y) * Width + x0;
+                BlurLine(w, row, 1, Values, row, 1, across, y * w, 1, kernel, blurPrefix);
+            }
+            for (int x = 0; x < w; x++)
+                BlurLine(h, y0 * Width + x0 + x, Width, across, x, w, blurred, x, w, kernel, blurPrefix);
+            for (int k = 0; k < hitCount; k++)
+            {
+                int i = hitIndex[k];
                 float mean = blurred[(i / Width - y0) * w + i % Width - x0];
-                Values[i] += (mean - Values[i]) * Mathf.Clamp01(weight * strength);
+                Values[i] += (mean - Values[i]) * Mathf.Clamp01(hitWeight[k] * strength);
             }
             BleedIntoGaps(painted);
             MarkChanged(Grow(painted, Bleed));
         }
 
+        static float[] Cleared(ref float[] buffer, int size)
+        {
+            if (buffer == null || buffer.Length < size) buffer = new float[Mathf.Max(size, 4096)];
+            else Array.Clear(buffer, 0, size);
+            return buffer;
+        }
+
         /// <summary>
-        /// A box blur of kernel along one line of length texels, inside each run of one piece: index gives a texel's place
-        /// in the canvas (for its piece), read its value, write the result.
+        /// A box blur of kernel along one line of length texels, inside each run of one piece. The line's texels sit at
+        /// ownerStart + k x ownerStep in the canvas, are read from source at readStart + k x readStep and written to
+        /// target at writeStart + k x writeStep.
         /// </summary>
-        void BlurRun(int length, Func<int, int> index, Func<int, float> read, Action<int, float> write, int kernel, double[] prefix)
+        void BlurLine(int length, int ownerStart, int ownerStep, float[] source, int readStart, int readStep, float[] target, int writeStart, int writeStep, int kernel, double[] prefix)
         {
             prefix[0] = 0;
-            for (int k = 0; k < length; k++) prefix[k + 1] = prefix[k] + read(k);
+            for (int k = 0; k < length; k++) prefix[k + 1] = prefix[k] + source[readStart + k * readStep];
             int start = 0;
             while (start < length)
             {
-                int piece = owner[index(start)];
+                int piece = owner[ownerStart + start * ownerStep];
                 int end = start;
-                while (end < length && owner[index(end)] == piece) end++;
+                while (end < length && owner[ownerStart + end * ownerStep] == piece) end++;
                 if (piece >= 0)
                     for (int k = start; k < end; k++)
                     {
                         int a = Mathf.Max(start, k - kernel), b = Mathf.Min(end - 1, k + kernel);
-                        write(k, (float)((prefix[b + 1] - prefix[a]) / (b - a + 1)));
+                        target[writeStart + k * writeStep] = (float)((prefix[b + 1] - prefix[a]) / (b - a + 1));
                     }
                 start = end;
             }
         }
 
         /// <summary>
-        /// Every texel within radius of the line through centres, once each, with its brush weight: full inside
-        /// radius x (1 - softness), fading out at radius. Triangles facing away from facing are skipped. False when none.
+        /// Every texel within radius of the line through centres, once each, with its brush weight (in hitIndex and
+        /// hitWeight): full inside radius x (1 - softness), fading out at radius. Triangles facing away from facing are
+        /// skipped. False when none. Nothing is allocated once the buffers have grown.
         /// </summary>
-        bool Reach(IReadOnlyList<Vector3> centres, float radius, float softness, Vector3 facing, List<(int index, float weight)> touched, out RectInt painted)
+        /// <param name="behind">Leave out what lies behind the first centre, seen along the line to the second.</param>
+        bool Reach(IReadOnlyList<Vector3> centres, float radius, float softness, Vector3 facing, out RectInt painted, bool behind)
         {
             painted = default;
-            if (centres.Count == 0) return false;
-            var pathMin = centres[0];
-            var pathMax = centres[0];
-            foreach (var c in centres)
+            hitCount = 0;
+            int count = centres.Count;
+            if (count == 0) return false;
+            if (pathBuffer == null || pathBuffer.Length < count) pathBuffer = new Vector3[Mathf.Max(8, count)];
+            var path = pathBuffer;
+            for (int k = 0; k < count; k++) path[k] = centres[k];
+            var pathMin = path[0];
+            var pathMax = path[0];
+            for (int k = 0; k < count; k++)
             {
-                pathMin = Vector3.Min(pathMin, c);
-                pathMax = Vector3.Max(pathMax, c);
+                pathMin = Vector3.Min(pathMin, path[k]);
+                pathMax = Vector3.Max(pathMax, path[k]);
             }
             var middle = (pathMin + pathMax) * 0.5f;
             float reach = radius + (pathMax - pathMin).magnitude * 0.5f;
-            var near = new List<int>();
+            if (nearBuffer == null) nearBuffer = new List<int>();
+            var near = nearBuffer;
             mesh.TrianglesNear(middle, reach, near);
-            if (facing != Vector3.zero) near.RemoveAll(t => Vector3.Dot(mesh.FaceNormal(t), facing) < 0f);
-            if (near.Count == 0) return false;
-
-            float inner = radius * (1f - Mathf.Clamp01(softness));
-            var seen = new HashSet<int>();
-            int minX = Width, minY = Height, maxX = -1, maxY = -1;
             var p = mesh.Positions;
             var tri = mesh.Triangles;
-            foreach (int t in near)
+            var uv = mesh.Uvs;
+            float fw = Width, fh = Height;
+
+            // Keep the triangles that face the brush and come within radius of the path somewhere, and the texel
+            // rectangle they cover.
+            float far = radius * 1.001f + 1e-6f;
+            int kept = 0, rx0 = Width, ry0 = Height, rx1 = -1, ry1 = -1;
+            for (int n = 0; n < near.Count; n++)
+            {
+                int t = near[n];
+                if (facing != Vector3.zero && Vector3.Dot(mesh.FaceNormal(t), facing) < 0f) continue;
+                var a = p[tri[3 * t]];
+                var b = p[tri[3 * t + 1]];
+                var c = p[tri[3 * t + 2]];
+                var centre = (a + b + c) / 3f;
+                float spread = Mathf.Sqrt(Mathf.Max((a - centre).sqrMagnitude, Mathf.Max((b - centre).sqrMagnitude, (c - centre).sqrMagnitude)));
+                if (DistanceToPath(centre, path, count) - spread > far) continue;
+                if (behind)
                 {
-                    var a = p[tri[3 * t]];
-                    var b = p[tri[3 * t + 1]];
-                    var c = p[tri[3 * t + 2]];
-                    Rasterise(t, (x, y, w) =>
-                    {
-                        var position = a * w.x + b * w.y + c * w.z;
-                        float d = DistanceToPath(position, centres);
-                        if (d >= radius) return;
-                        float weight = d <= inner ? 1f : 1f - Mathf.SmoothStep(0f, 1f, (d - inner) / Mathf.Max(radius - inner, 1e-6f));
-                        int i = y * Width + x;
-                        if (!seen.Add(i)) return;
-                        touched.Add((i, weight));
-                        if (x < minX) minX = x;
-                        if (y < minY) minY = y;
-                        if (x > maxX) maxX = x;
-                        if (y > maxY) maxY = y;
-                    });
+                    var step = path[1] - path[0];
+                    if (Vector3.Dot(a - path[0], step) <= 0f && Vector3.Dot(b - path[0], step) <= 0f && Vector3.Dot(c - path[0], step) <= 0f) continue;
                 }
+                near[kept++] = t;
+                var ua = uv[tri[3 * t]];
+                var ub = uv[tri[3 * t + 1]];
+                var uc = uv[tri[3 * t + 2]];
+                int bx0 = Mathf.Max(0, Mathf.FloorToInt(Mathf.Min(ua.x * fw, Mathf.Min(ub.x * fw, uc.x * fw))));
+                int bx1 = Mathf.Min(Width - 1, Mathf.CeilToInt(Mathf.Max(ua.x * fw, Mathf.Max(ub.x * fw, uc.x * fw))));
+                int by0 = Mathf.Max(0, Mathf.FloorToInt(Mathf.Min(ua.y * fh, Mathf.Min(ub.y * fh, uc.y * fh))));
+                int by1 = Mathf.Min(Height - 1, Mathf.CeilToInt(Mathf.Max(ua.y * fh, Mathf.Max(ub.y * fh, uc.y * fh))));
+                if (bx0 < rx0) rx0 = bx0;
+                if (by0 < ry0) ry0 = by0;
+                if (bx1 > rx1) rx1 = bx1;
+                if (by1 > ry1) ry1 = by1;
+            }
+            if (kept == 0 || rx1 < rx0 || ry1 < ry0) return false;
+
+            int rw = rx1 - rx0 + 1, rh = ry1 - ry0 + 1;
+            if (visitBuffer == null || visitBuffer.Length < rw * rh)
+            {
+                visitBuffer = new int[Mathf.Max(rw * rh, 4096)];
+                visitMark = 0;
+            }
+            if (++visitMark == int.MaxValue)
+            {
+                Array.Clear(visitBuffer, 0, visitBuffer.Length);
+                visitMark = 1;
+            }
+            int mark = visitMark;
+            var visited = visitBuffer;
+            float inner = radius * (1f - Mathf.Clamp01(softness));
+            float fade = Mathf.Max(radius - inner, 1e-6f);
+            float outSq = radius * radius;
+            float innerSq = inner * inner;
+            var s0 = path[0];
+            var ab = count == 2 ? path[1] - path[0] : Vector3.zero;
+            float abLength = ab.sqrMagnitude;
+            float abInverse = abLength > 1e-12f ? 1f / abLength : 0f;
+            int minX = Width, minY = Height, maxX = -1, maxY = -1;
+
+            // One texel at model point (px, py, pz): its distance to the path, and its weight when within radius and
+            // not taken by an earlier triangle.
+            void Take(int x, int y, float px, float py, float pz)
+            {
+                float q;
+                if (count <= 2)
+                {
+                    float rx = px - s0.x, ry = py - s0.y, rz = pz - s0.z;
+                    if (count == 2)
+                    {
+                        float ahead = (rx * ab.x + ry * ab.y + rz * ab.z) * abInverse;
+                        if (behind && ahead <= 0f) return;
+                        float along = Mathf.Clamp01(ahead);
+                        rx -= ab.x * along;
+                        ry -= ab.y * along;
+                        rz -= ab.z * along;
+                    }
+                    q = rx * rx + ry * ry + rz * rz;
+                }
+                else
+                {
+                    float d = DistanceToPath(new Vector3(px, py, pz), path, count);
+                    q = d * d;
+                }
+                if (q >= outSq) return;
+                float weight = q <= innerSq ? 1f : 1f - Mathf.SmoothStep(0f, 1f, ((float)Math.Sqrt(q) - inner) / fade);
+                int local = (y - ry0) * rw + (x - rx0);
+                if (visited[local] == mark) return;
+                visited[local] = mark;
+                AddHit(y * Width + x, weight);
+                if (x < minX) minX = x;
+                if (y < minY) minY = y;
+                if (x > maxX) maxX = x;
+                if (y > maxY) maxY = y;
+            }
+
+            for (int n = 0; n < kept; n++)
+            {
+                int t = near[n];
+                var pa = p[tri[3 * t]];
+                var pb = p[tri[3 * t + 1]];
+                var pc = p[tri[3 * t + 2]];
+                var a = Vector2.Scale(uv[tri[3 * t]], new Vector2(Width, Height));
+                var b = Vector2.Scale(uv[tri[3 * t + 1]], new Vector2(Width, Height));
+                var c = Vector2.Scale(uv[tri[3 * t + 2]], new Vector2(Width, Height));
+                float area = (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y);
+                bool any = false;
+                if (Mathf.Abs(area) > 1e-9f)
+                {
+                    int x0 = Mathf.Max(0, Mathf.FloorToInt(Mathf.Min(a.x, Mathf.Min(b.x, c.x))));
+                    int x1 = Mathf.Min(Width - 1, Mathf.CeilToInt(Mathf.Max(a.x, Mathf.Max(b.x, c.x))));
+                    int y0 = Mathf.Max(0, Mathf.FloorToInt(Mathf.Min(a.y, Mathf.Min(b.y, c.y))));
+                    int y1 = Mathf.Min(Height - 1, Mathf.CeilToInt(Mathf.Max(a.y, Mathf.Max(b.y, c.y))));
+                    const float eps = -1e-5f;
+                    float inverse = 1f / area;
+                    float cyay = c.y - a.y, cxax = c.x - a.x, bxax = b.x - a.x, byay = b.y - a.y;
+                    // Along a row each weight changes by the same step per texel, and so does the point on the model.
+                    float stepB = cyay * inverse, stepC = -byay * inverse, stepA = -(stepB + stepC);
+                    float stepX = pa.x * stepA + pb.x * stepB + pc.x * stepC;
+                    float stepY = pa.y * stepA + pb.y * stepB + pc.y * stepC;
+                    float stepZ = pa.z * stepA + pb.z * stepB + pc.z * stepC;
+                    for (int y = y0; y <= y1; y++)
+                    {
+                        float syay = y + 0.5f - a.y;
+                        float sxax = x0 + 0.5f - a.x;
+                        float baseB = (sxax * cyay - cxax * syay) * inverse;
+                        float baseC = (bxax * syay - sxax * byay) * inverse;
+                        float baseA = 1f - baseB - baseC;
+                        // The texels of this row inside the triangle: where each weight stays above eps.
+                        float from = 0f, to = x1 - x0;
+                        if (!Span(baseA, stepA, eps, ref from, ref to) || !Span(baseB, stepB, eps, ref from, ref to) || !Span(baseC, stepC, eps, ref from, ref to)) continue;
+                        int kFrom = Mathf.Max(0, Mathf.FloorToInt(from) - 1), kTo = Mathf.Min(x1 - x0, Mathf.CeilToInt(to) + 1);
+                        float px0 = pa.x * baseA + pb.x * baseB + pc.x * baseC;
+                        float py0 = pa.y * baseA + pb.y * baseB + pc.y * baseC;
+                        float pz0 = pa.z * baseA + pb.z * baseB + pc.z * baseC;
+                        for (int k = kFrom; k <= kTo; k++)
+                        {
+                            float wa = baseA + stepA * k, wb = baseB + stepB * k, wc = baseC + stepC * k;
+                            if (wa < eps || wb < eps || wc < eps) continue;
+                            any = true;
+                            Take(x0 + k, y, px0 + stepX * k, py0 + stepY * k, pz0 + stepZ * k);
+                        }
+                    }
+                }
+                if (any) continue;
+                var centre = (a + b + c) / 3f;
+                int mx = Mathf.FloorToInt(centre.x), my = Mathf.FloorToInt(centre.y);
+                var mean = (pa + pb + pc) / 3f;
+                if (mx >= 0 && my >= 0 && mx < Width && my < Height) Take(mx, my, mean.x, mean.y, mean.z);
+            }
             if (maxX < 0) return false;
             painted = new RectInt(minX, minY, maxX - minX + 1, maxY - minY + 1);
             return true;
         }
 
-        /// <summary>The distance from point to the nearest piece of the line through path (to the point itself when it is one).</summary>
-        static float DistanceToPath(Vector3 point, IReadOnlyList<Vector3> path)
+        /// <summary>Narrows from..to (steps along a row) to where base + step x k stays at least eps; false when nothing is left.</summary>
+        static bool Span(float start, float step, float eps, ref float from, ref float to)
         {
-            if (path.Count == 1) return Vector3.Distance(point, path[0]);
+            if (Mathf.Abs(step) < 1e-12f) return start >= eps;
+            float edge = (eps - start) / step;
+            if (step > 0f) from = Mathf.Max(from, edge);
+            else to = Mathf.Min(to, edge);
+            return from <= to + 1f;
+        }
+
+        void AddHit(int index, float weight)
+        {
+            if (hitIndex == null || hitCount == hitIndex.Length)
+            {
+                int size = hitIndex == null ? 16384 : hitIndex.Length * 2;
+                Array.Resize(ref hitIndex, size);
+                Array.Resize(ref hitWeight, size);
+            }
+            hitIndex[hitCount] = index;
+            hitWeight[hitCount] = weight;
+            hitCount++;
+        }
+
+        /// <summary>The distance from point to the nearest piece of the line through the first count points of path (to the point itself when it is one).</summary>
+        static float DistanceToPath(Vector3 point, Vector3[] path, int count)
+        {
+            if (count == 1) return Vector3.Distance(point, path[0]);
             float best = float.MaxValue;
-            for (int k = 0; k + 1 < path.Count; k++)
+            for (int k = 0; k + 1 < count; k++)
             {
                 var a = path[k];
                 var ab = path[k + 1] - a;
@@ -599,7 +898,8 @@ namespace DocMe.MaskPainter.Editor
 
         /// <summary>
         /// Copies the nearest covered texel's value into the empty texels up to Bleed steps away from a piece, within the
-        /// changed area (grown by Bleed), so a stroke or a fill only redoes the texels around it.
+        /// changed area (grown by Bleed), so a stroke or a fill only redoes the texels around it. Only the covered
+        /// texels next to a gap can reach one, so the walk starts from those alone, in the same order as from all.
         /// </summary>
         void BleedIntoGaps(RectInt changed)
         {
@@ -607,20 +907,33 @@ namespace DocMe.MaskPainter.Editor
             var area = Grow(changed, Bleed);
             int x0 = area.xMin, y0 = area.yMin, w = area.width, h = area.height;
             if (w <= 0 || h <= 0) return;
-            var distance = new int[w * h];
-            var queue = new Queue<int>();
-            for (int y = 0; y < h; y++)
-                for (int x = 0; x < w; x++)
-                {
-                    int local = y * w + x;
-                    bool covered = owner[(y0 + y) * Width + x0 + x] >= 0;
-                    distance[local] = covered ? 0 : int.MaxValue;
-                    if (covered) queue.Enqueue(local);
-                }
-            while (queue.Count > 0)
+            if (borderRowStart == null) FindBorders();
+            int size = w * h;
+            if (bleedMark == null || bleedMark.Length < size)
             {
-                int local = queue.Dequeue();
-                if (distance[local] >= Bleed) continue;
+                int grown = Mathf.Max(size, 4096);
+                bleedMark = new int[grown];
+                bleedDistance = new int[grown];
+                bleedQueue = new int[grown];
+                bleedPass = 0;
+            }
+            if (++bleedPass == int.MaxValue)
+            {
+                Array.Clear(bleedMark, 0, bleedMark.Length);
+                bleedPass = 1;
+            }
+            int pass = bleedPass, head = 0, tail = 0;
+            for (int y = 0; y < h; y++)
+            {
+                int row = y0 + y, end = borderRowStart[row + 1];
+                for (int k = FirstAtLeast(borderX, borderRowStart[row], end, x0); k < end && borderX[k] < x0 + w; k++)
+                    bleedQueue[tail++] = y * w + borderX[k] - x0;
+            }
+            while (head < tail)
+            {
+                int local = bleedQueue[head++];
+                int distance = bleedMark[local] == pass ? bleedDistance[local] : 0;
+                if (distance >= Bleed) continue;
                 int lx = local % w, ly = local / w;
                 for (int k = 0; k < 8; k++)
                 {
@@ -628,12 +941,54 @@ namespace DocMe.MaskPainter.Editor
                     int ny = ly + (k == 2 || k == 4 || k == 6 ? 1 : k == 3 || k == 5 || k == 7 ? -1 : 0);
                     if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
                     int n = ny * w + nx;
-                    if (distance[n] <= distance[local] + 1) continue;
-                    distance[n] = distance[local] + 1;
+                    int known = bleedMark[n] == pass ? bleedDistance[n] : owner[(y0 + ny) * Width + x0 + nx] >= 0 ? 0 : int.MaxValue;
+                    if (known <= distance + 1) continue;
+                    bleedMark[n] = pass;
+                    bleedDistance[n] = distance + 1;
                     Values[(y0 + ny) * Width + x0 + nx] = Values[(y0 + ly) * Width + x0 + lx];
-                    queue.Enqueue(n);
+                    bleedQueue[tail++] = n;
                 }
             }
+        }
+
+        /// <summary>The first place in xs from lo up to hi holding at least x (hi when none does); xs is sorted there.</summary>
+        static int FirstAtLeast(int[] xs, int lo, int hi, int x)
+        {
+            while (lo < hi)
+            {
+                int mid = (lo + hi) >> 1;
+                if (xs[mid] < x) lo = mid + 1;
+                else hi = mid;
+            }
+            return lo;
+        }
+
+        /// <summary>Lists, row by row, the covered texels with a gap among their eight neighbours: where bleeding starts.</summary>
+        void FindBorders()
+        {
+            borderRowStart = new int[Height + 1];
+            var xs = new List<int>();
+            for (int y = 0; y < Height; y++)
+            {
+                borderRowStart[y] = xs.Count;
+                int row = y * Width;
+                for (int x = 0; x < Width; x++)
+                    if (owner[row + x] >= 0 && NextToGap(x, y)) xs.Add(x);
+            }
+            borderRowStart[Height] = xs.Count;
+            borderX = xs.ToArray();
+        }
+
+        bool NextToGap(int x, int y)
+        {
+            for (int dy = -1; dy <= 1; dy++)
+                for (int dx = -1; dx <= 1; dx++)
+                {
+                    int nx = x + dx, ny = y + dy;
+                    if ((dx == 0 && dy == 0) || nx < 0 || ny < 0 || nx >= Width || ny >= Height) continue;
+                    if (owner[ny * Width + nx] < 0) return true;
+                }
+            return false;
         }
     }
 }
