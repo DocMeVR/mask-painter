@@ -18,7 +18,10 @@ namespace DocMe.MaskPainter.Editor
 
     public sealed class MaskPainterWindow : EditorWindow
     {
-        public enum PaintTool { Off, Fill, Brush }
+        public enum PaintTool { Off, Fill, Brush, Smooth }
+
+        /// <summary>Whether the tool paints with the round brush (Brush or Smooth).</summary>
+        static bool UsesBrush(PaintTool t) => t == PaintTool.Brush || t == PaintTool.Smooth;
 
         static readonly int ControlHint = "DocMeMaskPainter".GetHashCode();
         static readonly string[] UvChoices = { "UV0", "UV1", "UV2", "UV3" };
@@ -758,7 +761,8 @@ namespace DocMe.MaskPainter.Editor
                     if (tool == PaintTool.Fill) session.FillPiece(hover, value, amount);
                     else
                     {
-                        session.BeginStroke(hover, brushCm / 100f, softness, value, amount);
+                        if (tool == PaintTool.Smooth) session.BeginSmooth(hover, brushCm / 100f, softness, strength);
+                        else session.BeginStroke(hover, brushCm / 100f, softness, value, amount);
                         GUIUtility.hotControl = heldControl = id;
                         dragMissed = false;
                     }
@@ -787,7 +791,7 @@ namespace DocMe.MaskPainter.Editor
                     break;
 
                 case EventType.KeyDown:
-                    if (tool == PaintTool.Brush && (e.keyCode == KeyCode.LeftBracket || e.keyCode == KeyCode.RightBracket))
+                    if (UsesBrush(tool) && (e.keyCode == KeyCode.LeftBracket || e.keyCode == KeyCode.RightBracket))
                     {
                         brushCm = Mathf.Clamp(e.keyCode == KeyCode.LeftBracket ? brushCm / 1.25f : brushCm * 1.25f, MinBrushCm, MaxBrushCm);
                         e.Use();
@@ -800,7 +804,7 @@ namespace DocMe.MaskPainter.Editor
                     break;
 
                 case EventType.ScrollWheel:
-                    if (tool == PaintTool.Brush && EditorGUI.actionKey && Mathf.Abs(e.delta.y) > 0f)
+                    if (UsesBrush(tool) && EditorGUI.actionKey && Mathf.Abs(e.delta.y) > 0f)
                     {
                         BrushCm = e.delta.y > 0f ? brushCm / 1.15f : brushCm * 1.15f;
                         e.Use();
@@ -853,10 +857,12 @@ namespace DocMe.MaskPainter.Editor
 
         void DrawCursor(Event e)
         {
-            if (!hoverValid || tool != PaintTool.Brush || !session.IsValid(hover)) return;
+            if (!hoverValid || !UsesBrush(tool) || !session.IsValid(hover)) return;
             var normal = session.Mesh.NormalAt(hover);
             float radius = brushCm / 100f;
-            using (new Handles.DrawingScope(e.shift != paintsBlack ? new Color(0.1f, 0.1f, 0.1f, 1f) : MaskLook.Tint(session.Channel)))
+            var ring = tool == PaintTool.Smooth ? new Color(0.9f, 0.9f, 0.9f, 1f)
+                : e.shift != paintsBlack ? new Color(0.1f, 0.1f, 0.1f, 1f) : MaskLook.Tint(session.Channel);
+            using (new Handles.DrawingScope(ring))
             {
                 Handles.DrawWireDisc(hover.Point, normal, radius, 2f);
                 if (softness > 0.01f) Handles.DrawWireDisc(hover.Point, normal, radius * (1f - softness));

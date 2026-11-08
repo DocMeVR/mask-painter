@@ -116,21 +116,13 @@ msgstr "{0}: {2}に1個のパーツ、{3} x {4}ピクセル。"
 msgid "mesh.describe.many"
 msgstr "{0}: {2}に{1}個のパーツ、{3} x {4}ピクセル。"
 
-#. en: Click does
-msgid "row.tool"
-msgstr "クリック操作"
-
-#. en: What a click in the Scene view does while this window is open.
-msgid "row.tool.tip"
-msgstr "このウィンドウを開いている間、シーンビューでクリックしたときの動作です。"
-
-#. en: Off
+#. en: Select
 msgid "tool.off"
-msgstr "オフ"
+msgstr "選択"
 
 #. en: Clicks in the Scene view select objects as usual.
 msgid "tool.off.tip"
-msgstr "シーンビューのクリックは、いつもどおりオブジェクトを選択します。"
+msgstr "シーンビューのクリックで、いつも通りオブジェクトを選択します。"
 
 #. en: Fill pieces
 msgid "tool.fill"
@@ -188,9 +180,9 @@ msgstr "モデルのパーツをクリックで塗り、Shift+クリックでも
 msgid "hint.brush"
 msgstr "モデル上をドラッグで塗り、Shiftを押すともう一方の色になります。Ctrl+クリックでマウス下のグレーを拾い、Alt+ドラッグで視点を回せます。"
 
-#. en: Pick Fill pieces or Brush to paint in the Scene view.
+#. en: Pick Fill pieces, Brush or Smooth to paint in the Scene view.
 msgid "hint.off"
-msgstr "シーンビューで塗るには、パーツ塗りかブラシを選んでください。"
+msgstr "パーツ塗り、ブラシ、ぼかしのどれかを選ぶと、シーンビューで塗れます。"
 
 #. en: To paint under clothes, hide them with the eye icon in the Hierarchy: it hides them only in the Scene view.
 msgid "hint.clothes"
@@ -607,3 +599,23 @@ msgstr "BC5（赤と緑）"
 #. en: BC7
 msgid "format.bc7"
 msgstr "BC7"
+
+#. en: Smooth
+msgid "tool.smooth"
+msgstr "ぼかし"
+
+#. en: Drag on the model to soften the mask's edges (S).
+msgid "tool.smooth.tip"
+msgstr "モデル上をドラッグして、マスクの境目をぼかします（S）。"
+
+#. en: Drag over an edge to soften it. Each pass softens a little more, and pieces never blur into each other.
+msgid "hint.smooth"
+msgstr "境目をドラッグするとぼかせます。なぞるたびに少しずつぼけ、別のパーツとは混ざりません。"
+
+#. en: How much each pass of the Smooth brush softens the mask.
+msgid "field.smooth.tip"
+msgstr "ぼかしブラシで1回なぞったときのぼかし量です。"
+
+#. en: Smooth mask
+msgid "undo.smooth"
+msgstr "マスクをぼかす"

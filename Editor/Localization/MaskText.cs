@@ -48,8 +48,6 @@ namespace DocMe.MaskPainter.Editor
             "mesh.gone",
             "mesh.describe.one",
             "mesh.describe.many",
-            "row.tool",
-            "row.tool.tip",
             "tool.off",
             "tool.off.tip",
             "tool.fill",
@@ -171,6 +169,11 @@ namespace DocMe.MaskPainter.Editor
             "format.bc4",
             "format.bc5",
             "format.bc7",
+            "tool.smooth",
+            "tool.smooth.tip",
+            "hint.smooth",
+            "field.smooth.tip",
+            "undo.smooth",
         };
 
         public static string T(string key) => Find(key, MaskLanguage.Current);

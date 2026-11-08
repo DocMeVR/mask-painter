@@ -145,3 +145,6 @@
 .docme-mp-swatch-green { background-color: rgb(77, 224, 92); }
 .docme-mp-swatch-blue { background-color: rgb(77, 140, 255); }
 .docme-mp-swatch-alpha { background-color: rgb(199, 115, 255); }
+/* Tool choice: the first row of the Scene view panel, full width like a toolbar. */
+.docme-mp-tools { margin-bottom: 6px; }
+.docme-root .docme-mp-tools > .unity-button.docme-seg-item { padding: 2px 4px; }

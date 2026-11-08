@@ -87,14 +87,8 @@ msgstr "{0}: 1 piece on {2}, {3} x {4} pixels."
 msgid "mesh.describe.many"
 msgstr "{0}: {1} pieces on {2}, {3} x {4} pixels."
 
-msgid "row.tool"
-msgstr "Click does"
-
-msgid "row.tool.tip"
-msgstr "What a click in the Scene view does while this window is open."
-
 msgid "tool.off"
-msgstr "Off"
+msgstr "Select"
 
 msgid "tool.off.tip"
 msgstr "Clicks in the Scene view select objects as usual."
@@ -142,7 +136,7 @@ msgid "hint.brush"
 msgstr "Drag on the model to paint, hold Shift for the other colour. Ctrl+click picks the grey under the mouse, and Alt+drag still turns the view."
 
 msgid "hint.off"
-msgstr "Pick Fill pieces or Brush to paint in the Scene view."
+msgstr "Pick Fill pieces, Brush or Smooth to paint in the Scene view."
 
 msgid "hint.clothes"
 msgstr "To paint under clothes, hide them with the eye icon in the Hierarchy: it hides them only in the Scene view."
@@ -455,3 +449,18 @@ msgstr "BC5 (red and green)"
 
 msgid "format.bc7"
 msgstr "BC7"
+
+msgid "tool.smooth"
+msgstr "Smooth"
+
+msgid "tool.smooth.tip"
+msgstr "Drag on the model to soften the mask's edges (S)."
+
+msgid "hint.smooth"
+msgstr "Drag over an edge to soften it. Each pass softens a little more, and pieces never blur into each other."
+
+msgid "field.smooth.tip"
+msgstr "How much each pass of the Smooth brush softens the mask."
+
+msgid "undo.smooth"
+msgstr "Smooth mask"

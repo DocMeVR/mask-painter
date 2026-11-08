@@ -50,6 +50,13 @@ namespace DocMe.MaskPainter.Editor
             if (window != null) window.SetTool(MaskPainterWindow.PaintTool.Fill);
         }
 
+        [Shortcut("Mask Painter/Smooth", typeof(SceneView), Tag, KeyCode.S)]
+        public static void UseSmooth()
+        {
+            var window = Painting;
+            if (window != null) window.SetTool(MaskPainterWindow.PaintTool.Smooth);
+        }
+
         [Shortcut("Mask Painter/Swap White and Black", typeof(SceneView), Tag, KeyCode.X)]
         public static void Swap()
         {

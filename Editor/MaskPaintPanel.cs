@@ -49,10 +49,13 @@ namespace DocMe.MaskPainter.Editor
             channelHint = MaskUI.Note("");
             root.Add(channelHint);
 
-            root.Add(MaskUI.Row(MaskText.T("row.tool"), MaskText.T("row.tool.tip"), MaskUI.Segments(out toolItems,
+            var tools = MaskUI.Segments(out toolItems,
                 (MaskText.T("tool.off"), MaskText.T("tool.off.tip"), () => Window?.SetTool(MaskPainterWindow.PaintTool.Off)),
                 (MaskText.T("tool.fill"), MaskText.T("tool.fill.tip"), () => Window?.SetTool(MaskPainterWindow.PaintTool.Fill)),
-                (MaskText.T("tool.brush"), MaskText.T("tool.brush.tip"), () => Window?.SetTool(MaskPainterWindow.PaintTool.Brush)))));
+                (MaskText.T("tool.brush"), MaskText.T("tool.brush.tip"), () => Window?.SetTool(MaskPainterWindow.PaintTool.Brush)),
+                (MaskText.T("tool.smooth"), MaskText.T("tool.smooth.tip"), () => Window?.SetTool(MaskPainterWindow.PaintTool.Smooth)));
+            tools.AddToClassList("docme-mp-tools");
+            root.Add(tools);
             blendRow = MaskUI.Row(MaskText.T("field.blend"), MaskText.T("field.blend.tip"), MaskUI.Segments(out blendItems,
                 (MaskText.T("blend.add"), MaskText.T("blend.add.tip"), () => SetBlend(MaskBlend.Add)),
                 (MaskText.T("blend.replace"), MaskText.T("blend.replace.tip"), () => SetBlend(MaskBlend.Replace))));
@@ -122,19 +125,20 @@ namespace DocMe.MaskPainter.Editor
 
             var tool = window.Tool;
             bool painting = tool != MaskPainterWindow.PaintTool.Off;
-            bool brush = tool == MaskPainterWindow.PaintTool.Brush;
+            bool smooth = tool == MaskPainterWindow.PaintTool.Smooth;
+            bool brush = tool == MaskPainterWindow.PaintTool.Brush || smooth;
             MaskUI.Mark(toolItems, (int)tool);
             MaskUI.Mark(blendItems, (int)window.Blend);
-            MaskUI.Show(blendRow, painting);
+            MaskUI.Show(blendRow, painting && !smooth);
             MaskUI.Mark(paintItems, window.PaintsBlack ? 1 : 0);
-            MaskUI.Show(paintRow, painting);
+            MaskUI.Show(paintRow, painting && !smooth);
             brushField.SetValueWithoutNotify(window.BrushCm);
             softnessField.SetValueWithoutNotify(window.Softness);
             MaskUI.Show(brushField, brush);
             MaskUI.Show(softnessField, brush);
-            bool replace = window.Blend == MaskBlend.Replace;
+            bool replace = window.Blend == MaskBlend.Replace && !smooth;
             strengthLabel.text = MaskText.T(replace ? "field.level" : "field.strength");
-            strengthField.tooltip = MaskText.T(replace ? "field.level.tip" : "field.strength.tip");
+            strengthField.tooltip = MaskText.T(replace ? "field.level.tip" : smooth ? "field.smooth.tip" : "field.strength.tip");
             strengthField.SetValueWithoutNotify(window.Strength);
             MaskUI.Show(strengthRow, painting);
             mirrorField.SetValueWithoutNotify(window.Mirror);
@@ -144,6 +148,7 @@ namespace DocMe.MaskPainter.Editor
             overlayField.SetValueWithoutNotify(window.OverlayStrength);
             MaskUI.Show(overlayField, window.View == MaskShow.Overlay || window.View == MaskShow.EveryChannel);
             hint.text = tool == MaskPainterWindow.PaintTool.Fill ? MaskText.T("hint.fill")
+                : smooth ? MaskText.T("hint.smooth")
                 : brush ? MaskText.T("hint.brush")
                 : MaskText.T("hint.off");
         }

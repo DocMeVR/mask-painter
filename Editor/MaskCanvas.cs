@@ -347,7 +347,60 @@ namespace DocMe.MaskPainter.Editor
         /// </summary>
         public void BrushPath(IReadOnlyList<Vector3> centres, float radius, float softness, float value, float strength = 1f, Vector3 facing = default)
         {
-            if (centres.Count == 0) return;
+            var touched = new List<(int index, float weight)>();
+            if (!Reach(centres, radius, softness, facing, touched, out var painted)) return;
+            foreach (var (i, weight) in touched)
+            {
+                float amount = Mathf.Clamp01(weight * strength);
+                if (strokeStart == null) Values[i] += (value - Values[i]) * amount;
+                else if (amount > strokeWeight[i])
+                {
+                    strokeWeight[i] = amount;
+                    Values[i] = strokeStart[i] + (value - strokeStart[i]) * amount;
+                }
+            }
+            BleedIntoGaps(painted);
+            MarkChanged(Grow(painted, Bleed));
+        }
+
+        /// <summary>
+        /// Softens the mask along the line through centres: each texel moves toward the mean of the texels of its own
+        /// piece within kernel texels, by the brush weight times strength. Gaps and other pieces never bleed in.
+        /// </summary>
+        public void Smooth(IReadOnlyList<Vector3> centres, float radius, float softness, float strength, Vector3 facing, int kernel)
+        {
+            var touched = new List<(int index, float weight)>();
+            if (!Reach(centres, radius, softness, facing, touched, out var painted)) return;
+            var next = new float[touched.Count];
+            for (int n = 0; n < touched.Count; n++)
+            {
+                int i = touched[n].index, x = i % Width, y = i / Width, piece = owner[i];
+                float sum = 0f;
+                int count = 0;
+                for (int ny = Mathf.Max(0, y - kernel); ny <= Mathf.Min(Height - 1, y + kernel); ny++)
+                    for (int nx = Mathf.Max(0, x - kernel); nx <= Mathf.Min(Width - 1, x + kernel); nx++)
+                    {
+                        int j = ny * Width + nx;
+                        if (owner[j] != piece) continue;
+                        sum += Values[j];
+                        count++;
+                    }
+                float mean = count > 0 ? sum / count : Values[i];
+                next[n] = Values[i] + (mean - Values[i]) * Mathf.Clamp01(touched[n].weight * strength);
+            }
+            for (int n = 0; n < touched.Count; n++) Values[touched[n].index] = next[n];
+            BleedIntoGaps(painted);
+            MarkChanged(Grow(painted, Bleed));
+        }
+
+        /// <summary>
+        /// Every texel within radius of the line through centres, once each, with its brush weight: full inside
+        /// radius x (1 - softness), fading out at radius. Triangles facing away from facing are skipped. False when none.
+        /// </summary>
+        bool Reach(IReadOnlyList<Vector3> centres, float radius, float softness, Vector3 facing, List<(int index, float weight)> touched, out RectInt painted)
+        {
+            painted = default;
+            if (centres.Count == 0) return false;
             var pathMin = centres[0];
             var pathMax = centres[0];
             foreach (var c in centres)
@@ -364,9 +417,10 @@ namespace DocMe.MaskPainter.Editor
                 if (facing != Vector3.zero && Vector3.Dot(mesh.FaceNormal(t), facing) < 0f) continue;
                 near.Add(t);
             }
-            if (near.Count == 0) return;
+            if (near.Count == 0) return false;
 
             float inner = radius * (1f - Mathf.Clamp01(softness));
+            var seen = new HashSet<int>();
             int minX = Width, minY = Height, maxX = -1, maxY = -1;
             var p = mesh.Positions;
             var tri = mesh.Triangles;
@@ -382,23 +436,17 @@ namespace DocMe.MaskPainter.Editor
                         if (d >= radius) return;
                         float weight = d <= inner ? 1f : 1f - Mathf.SmoothStep(0f, 1f, (d - inner) / Mathf.Max(radius - inner, 1e-6f));
                         int i = y * Width + x;
-                        float amount = Mathf.Clamp01(weight * strength);
-                        if (strokeStart == null) Values[i] += (value - Values[i]) * amount;
-                        else if (amount > strokeWeight[i])
-                        {
-                            strokeWeight[i] = amount;
-                            Values[i] = strokeStart[i] + (value - strokeStart[i]) * amount;
-                        }
+                        if (!seen.Add(i)) return;
+                        touched.Add((i, weight));
                         if (x < minX) minX = x;
                         if (y < minY) minY = y;
                         if (x > maxX) maxX = x;
                         if (y > maxY) maxY = y;
                     });
                 }
-            if (maxX < 0) return;
-            var painted = new RectInt(minX, minY, maxX - minX + 1, maxY - minY + 1);
-            BleedIntoGaps(painted);
-            MarkChanged(Grow(painted, Bleed));
+            if (maxX < 0) return false;
+            painted = new RectInt(minX, minY, maxX - minX + 1, maxY - minY + 1);
+            return true;
         }
 
         /// <summary>The distance from point to the nearest piece of the line through path (to the point itself when it is one).</summary>

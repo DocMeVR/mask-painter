@@ -29,6 +29,8 @@ namespace DocMe.MaskPainter.Editor
         [NonSerialized] Vector3 strokeFacing;
         [NonSerialized] float strokeRadius, strokeSoftness, strokeValue, strokeStrength;
         [NonSerialized] bool mirrorStroking;
+        [NonSerialized] bool smoothing;
+        [NonSerialized] int smoothKernel;
         [NonSerialized] Vector3 lastMirrorDab;
 
         /// <summary>
@@ -272,13 +274,14 @@ namespace DocMe.MaskPainter.Editor
             if (IsStroking) EndStroke();
             if (!IsValid(hit)) return;
             strokeBefore = Canvas.BeginStroke();
+            smoothing = false;
             strokeRadius = radius;
             strokeSoftness = softness;
             strokeValue = value;
             strokeStrength = Mathf.Clamp01(strength);
             strokeFacing = mesh.NormalAt(hit);
             lastDab = hit.Point;
-            Canvas.Brush(hit.Point, radius, softness, value, strokeStrength, strokeFacing);
+            Stamp(new[] { hit.Point }, strokeFacing);
             mirrorStroking = false;
             MirrorStroke(hit, true);
         }
@@ -294,10 +297,10 @@ namespace DocMe.MaskPainter.Editor
             if (jump)
             {
                 lastDab = hit.Point;
-                Canvas.Brush(hit.Point, strokeRadius, strokeSoftness, strokeValue, strokeStrength, strokeFacing);
+                Stamp(new[] { hit.Point }, strokeFacing);
             }
             else if (SegmentTo(ref lastDab, hit.Point, out var segment))
-                Canvas.BrushPath(segment, strokeRadius, strokeSoftness, strokeValue, strokeStrength, strokeFacing);
+                Stamp(segment, strokeFacing);
             MirrorStroke(hit, jump);
         }
 
@@ -313,10 +316,10 @@ namespace DocMe.MaskPainter.Editor
             if (jump || !mirrorStroking)
             {
                 lastMirrorDab = mirrored.Point;
-                Canvas.Brush(mirrored.Point, strokeRadius, strokeSoftness, strokeValue, strokeStrength, facing);
+                Stamp(new[] { mirrored.Point }, facing);
             }
             else if (SegmentTo(ref lastMirrorDab, mirrored.Point, out var segment))
-                Canvas.BrushPath(segment, strokeRadius, strokeSoftness, strokeValue, strokeStrength, facing);
+                Stamp(segment, facing);
             mirrorStroking = true;
         }
 
@@ -330,13 +333,38 @@ namespace DocMe.MaskPainter.Editor
             return true;
         }
 
+        /// <summary>Starts a Smooth stroke: it softens the painted channel under the brush, more with each pass.</summary>
+        public void BeginSmooth(MaskHit hit, float radius, float softness, float strength)
+        {
+            if (IsStroking) EndStroke();
+            if (!IsValid(hit)) return;
+            strokeBefore = Canvas.BeginStroke();
+            smoothing = true;
+            strokeRadius = radius;
+            strokeSoftness = softness;
+            strokeStrength = Mathf.Clamp01(strength);
+            float texels = mesh.TexelsPerMetre(hit.Triangle, Canvas.Width, Canvas.Height) * radius;
+            smoothKernel = Mathf.Clamp(Mathf.RoundToInt(texels / 4f), 1, 6);
+            strokeFacing = mesh.NormalAt(hit);
+            lastDab = hit.Point;
+            Stamp(new[] { hit.Point }, strokeFacing);
+            mirrorStroking = false;
+            MirrorStroke(hit, true);
+        }
+
+        void Stamp(IReadOnlyList<Vector3> path, Vector3 facing)
+        {
+            if (smoothing) Canvas.Smooth(path, strokeRadius, strokeSoftness, strokeStrength, facing, smoothKernel);
+            else Canvas.BrushPath(path, strokeRadius, strokeSoftness, strokeValue, strokeStrength, facing);
+        }
+
         public void EndStroke()
         {
             if (!IsStroking) return;
             Canvas.EndStroke();
             var before = strokeBefore;
             strokeBefore = null;
-            Record(MaskText.T("undo.paint"), before);
+            Record(MaskText.T(smoothing ? "undo.smooth" : "undo.paint"), before);
         }
 
         void Record(string name, float[] before) => Record(name, new RectInt(0, 0, Canvas.Width, Canvas.Height), before);

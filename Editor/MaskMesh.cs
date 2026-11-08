@@ -275,6 +275,20 @@ namespace DocMe.MaskPainter.Editor
             return hit.Triangle >= 0;
         }
 
+        /// <summary>How many texels of a width x height map one metre of triangle t covers, along one side.</summary>
+        public float TexelsPerMetre(int t, int width, int height)
+        {
+            var p0 = Positions[Triangles[3 * t]];
+            var p1 = Positions[Triangles[3 * t + 1]];
+            var p2 = Positions[Triangles[3 * t + 2]];
+            var u0 = Uvs[Triangles[3 * t]];
+            var a = Vector2.Scale(Uvs[Triangles[3 * t + 1]] - u0, new Vector2(width, height));
+            var b = Vector2.Scale(Uvs[Triangles[3 * t + 2]] - u0, new Vector2(width, height));
+            float world = Vector3.Cross(p1 - p0, p2 - p0).magnitude;
+            float texels = Mathf.Abs(a.x * b.y - a.y * b.x);
+            return world > 1e-12f ? Mathf.Sqrt(texels / world) : 0f;
+        }
+
         public Vector2 UvAt(MaskHit hit)
         {
             int i = 3 * hit.Triangle;
