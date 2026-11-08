@@ -182,6 +182,13 @@ namespace DocMe.MaskPainter.Editor
             "pen.strength.tip",
             "field.isolate",
             "field.isolate.tip",
+            "button.copyfrom",
+            "button.copyfrom.tip",
+            "row.seams",
+            "button.seams",
+            "button.seams.tip",
+            "undo.seams",
+            "undo.copy",
         };
 
         public static string T(string key) => Find(key, MaskLanguage.Current);

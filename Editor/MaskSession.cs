@@ -255,6 +255,24 @@ namespace DocMe.MaskPainter.Editor
             return new RectInt(x0, y0, Mathf.Max(a.xMax, b.xMax) - x0, Mathf.Max(a.yMax, b.yMax) - y0);
         }
 
+        /// <summary>Gives both sides of every UV seam the same value, as one Undo step.</summary>
+        public void EvenSeams()
+        {
+            if (!IsLive) return;
+            var before = Canvas.Snapshot();
+            Canvas.EvenSeams(mesh.SeamEdges());
+            Record(MaskText.T("undo.seams"), before);
+        }
+
+        /// <summary>Copies another channel into the painted one, as one Undo step.</summary>
+        public void CopyChannel(MaskChannel from)
+        {
+            if (!IsLive || from == MaskChannel.All || from == Canvas.Channel) return;
+            var before = Canvas.Snapshot();
+            Canvas.CopyFrom(from);
+            Record(MaskText.T("undo.copy"), before);
+        }
+
         public void FillAll(float value)
         {
             var before = Canvas.Snapshot();

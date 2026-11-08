@@ -22,6 +22,7 @@ namespace DocMe.MaskPainter.Editor
         Button[] toolItems, blendItems, paintItems, penItems;
         Slider brushField, softnessField, strengthField, overlayField;
         Toggle mirrorField, isolateField;
+        Button copyButton;
         VisualElement blendRow, paintRow, strengthRow, swatch, penRow;
         string builtLanguage;
 
@@ -95,10 +96,28 @@ namespace DocMe.MaskPainter.Editor
             root.Add(MaskUI.Row(MaskText.T("row.whole"), MaskText.T("row.whole.tip"), MaskUI.Wrap(
                 MaskUI.Button(MaskText.T("button.allblack"), MaskText.T("button.allblack.tip"), () => Window?.FillAll(0f)),
                 MaskUI.Button(MaskText.T("button.allwhite"), MaskText.T("button.allwhite.tip"), () => Window?.FillAll(1f)),
-                MaskUI.Button(MaskText.T("button.invert"), MaskText.T("button.invert.tip"), () => Window?.Invert()))));
+                MaskUI.Button(MaskText.T("button.invert"), MaskText.T("button.invert.tip"), () => Window?.Invert()),
+                copyButton = MaskUI.Button(MaskText.T("button.copyfrom"), MaskText.T("button.copyfrom.tip"), OpenCopyMenu))));
+            root.Add(MaskUI.Row(MaskText.T("row.seams"), MaskText.T("button.seams.tip"), MaskUI.Wrap(
+                MaskUI.Button(MaskText.T("button.seams"), MaskText.T("button.seams.tip"), () => Window?.EvenSeams()))));
             hint = MaskUI.Note("");
             root.Add(hint);
             Refresh();
+        }
+
+        void OpenCopyMenu()
+        {
+            var window = Window;
+            if (window == null || !window.IsPainting) return;
+            var menu = new GenericMenu();
+            for (var c = MaskChannel.Red; c <= MaskChannel.Alpha; c++)
+            {
+                var from = c;
+                var name = new GUIContent(ChannelChoices[(int)c]);
+                if (c == window.Channel) menu.AddDisabledItem(name);
+                else menu.AddItem(name, false, () => Window?.CopyChannel(from));
+            }
+            menu.DropDown(copyButton.worldBound);
         }
 
         void SetPaintsBlack(bool black)

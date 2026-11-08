@@ -651,3 +651,31 @@ msgstr "このメッシュだけ"
 #. en: Hides every other object in the Scene view while you paint, so clothes are out of the way.
 msgid "field.isolate.tip"
 msgstr "ペイント中はシーンビューでほかのオブジェクトを隠すので、服が邪魔になりません。"
+
+#. en: Copy from...
+msgid "button.copyfrom"
+msgstr "ほかから写す..."
+
+#. en: Copies another channel into the one you paint.
+msgid "button.copyfrom.tip"
+msgstr "ほかのチャンネルの内容を、塗っているチャンネルに写します。"
+
+#. en: UV seams
+msgid "row.seams"
+msgstr "UVの継ぎ目"
+
+#. en: Even out
+msgid "button.seams"
+msgstr "そろえる"
+
+#. en: Gives both sides of every UV seam the same value, so a dent or effect shows no line along the seam.
+msgid "button.seams.tip"
+msgstr "UVの継ぎ目の両側を同じ値にそろえ、へこみやエフェクトに継ぎ目の線が出ないようにします。"
+
+#. en: Even out mask seams
+msgid "undo.seams"
+msgstr "マスクの継ぎ目をそろえる"
+
+#. en: Copy mask channel
+msgid "undo.copy"
+msgstr "マスクのチャンネルを写す"

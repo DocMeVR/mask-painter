@@ -488,3 +488,24 @@ msgstr "Only this mesh"
 
 msgid "field.isolate.tip"
 msgstr "Hides every other object in the Scene view while you paint, so clothes are out of the way."
+
+msgid "button.copyfrom"
+msgstr "Copy from..."
+
+msgid "button.copyfrom.tip"
+msgstr "Copies another channel into the one you paint."
+
+msgid "row.seams"
+msgstr "UV seams"
+
+msgid "button.seams"
+msgstr "Even out"
+
+msgid "button.seams.tip"
+msgstr "Gives both sides of every UV seam the same value, so a dent or effect shows no line along the seam."
+
+msgid "undo.seams"
+msgstr "Even out mask seams"
+
+msgid "undo.copy"
+msgstr "Copy mask channel"

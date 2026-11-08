@@ -275,6 +275,83 @@ namespace DocMe.MaskPainter.Editor
             MarkChanged(All);
         }
 
+        /// <summary>Makes the painted channel a copy of another channel.</summary>
+        public void CopyFrom(MaskChannel from)
+        {
+            Commit();
+            int offset = MaskLook.Offset(from);
+            for (int i = 0; i < Values.Length; i++) Values[i] = Pixels[4 * i + offset] / 255f;
+            MarkChanged(All);
+        }
+
+        /// <summary>
+        /// Along every seam, the texels on both sides take the average of the two sides, so a shader reads the same value
+        /// on either side of the seam and shows no line along it. Only a texel or two next to each seam changes.
+        /// </summary>
+        public void EvenSeams(IReadOnlyList<SeamEdge> seams)
+        {
+            if (mesh == null || seams.Count == 0) return;
+            var size = new Vector2(Width, Height);
+            var writes = new List<(int island, Vector2 at, float value)>();
+            foreach (var seam in seams)
+            {
+                int ia = mesh.Island[seam.TriangleA], ib = mesh.Island[seam.TriangleB];
+                Vector2 a0 = Vector2.Scale(seam.A0, size), a1 = Vector2.Scale(seam.A1, size);
+                Vector2 b0 = Vector2.Scale(seam.B0, size), b1 = Vector2.Scale(seam.B1, size);
+                int steps = Mathf.Clamp(Mathf.CeilToInt(Mathf.Max((a1 - a0).magnitude, (b1 - b0).magnitude) * 2f), 1, 8192);
+                for (int k = 0; k <= steps; k++)
+                {
+                    float t = k / (float)steps;
+                    var pa = Vector2.Lerp(a0, a1, t);
+                    var pb = Vector2.Lerp(b0, b1, t);
+                    if (!NearestIn(pa, ia, out float va) || !NearestIn(pb, ib, out float vb)) continue;
+                    float mean = (va + vb) * 0.5f;
+                    writes.Add((ia, pa, mean));
+                    writes.Add((ib, pb, mean));
+                }
+            }
+            if (writes.Count == 0) return;
+            int minX = Width, minY = Height, maxX = -1, maxY = -1;
+            foreach (var (island, at, value) in writes)
+            {
+                int cx = Mathf.FloorToInt(at.x), cy = Mathf.FloorToInt(at.y);
+                for (int y = Mathf.Max(0, cy - 1); y <= Mathf.Min(Height - 1, cy + 1); y++)
+                    for (int x = Mathf.Max(0, cx - 1); x <= Mathf.Min(Width - 1, cx + 1); x++)
+                    {
+                        int i = y * Width + x;
+                        if (owner[i] != island || (new Vector2(x + 0.5f, y + 0.5f) - at).sqrMagnitude > 2.25f) continue;
+                        Values[i] = value;
+                        if (x < minX) minX = x;
+                        if (y < minY) minY = y;
+                        if (x > maxX) maxX = x;
+                        if (y > maxY) maxY = y;
+                    }
+            }
+            if (maxX < 0) return;
+            var changedArea = new RectInt(minX, minY, maxX - minX + 1, maxY - minY + 1);
+            BleedIntoGaps(changedArea);
+            MarkChanged(Grow(changedArea, Bleed));
+        }
+
+        /// <summary>The value of island's texel nearest to a point on the map, within two texels.</summary>
+        bool NearestIn(Vector2 at, int island, out float value)
+        {
+            value = 0f;
+            float best = float.MaxValue;
+            int cx = Mathf.FloorToInt(at.x), cy = Mathf.FloorToInt(at.y);
+            for (int y = Mathf.Max(0, cy - 2); y <= Mathf.Min(Height - 1, cy + 2); y++)
+                for (int x = Mathf.Max(0, cx - 2); x <= Mathf.Min(Width - 1, cx + 2); x++)
+                {
+                    int i = y * Width + x;
+                    if (owner[i] != island) continue;
+                    float d = (new Vector2(x + 0.5f, y + 0.5f) - at).sqrMagnitude;
+                    if (d >= best) continue;
+                    best = d;
+                    value = Values[i];
+                }
+            return best < float.MaxValue;
+        }
+
         /// <summary>Learns which island covers each texel, and the rectangle each island covers. The values stay as they are.</summary>
         public void Bind(MaskMesh mesh)
         {

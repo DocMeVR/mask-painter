@@ -17,6 +17,16 @@ namespace DocMe.MaskPainter.Editor
     /// A mesh as the painter needs it: its corners in world space, one UV channel, its triangles and its UV islands
     /// (pieces of the UV map: triangles joined by corners with the same UV).
     /// </summary>
+    /// <summary>
+    /// One edge the model shares between two triangles that lie apart on the UV map: A0 and B0 are where its first end
+    /// lies on each side, A1 and B1 its second end.
+    /// </summary>
+    public struct SeamEdge
+    {
+        public int TriangleA, TriangleB;
+        public Vector2 A0, A1, B0, B1;
+    }
+
     public sealed class MaskMesh
     {
         public Vector3[] Positions;
@@ -147,6 +157,42 @@ namespace DocMe.MaskPainter.Editor
                 return false;
             }
         }
+
+        /// <summary>Every edge two triangles share on the model (ends within 0.1 mm) whose sides lie apart on the UV map.</summary>
+        public List<SeamEdge> SeamEdges()
+        {
+            var seams = new List<SeamEdge>();
+            var open = new Dictionary<(Vector3Int, Vector3Int), (int triangle, Vector2 uv0, Vector2 uv1)>();
+            for (int t = 0; t < TriangleCount; t++)
+                for (int e = 0; e < 3; e++)
+                {
+                    int i0 = Triangles[3 * t + e], i1 = Triangles[3 * t + (e + 1) % 3];
+                    var k0 = PositionKey(Positions[i0]);
+                    var k1 = PositionKey(Positions[i1]);
+                    if (k0 == k1) continue;
+                    var u0 = Uvs[i0];
+                    var u1 = Uvs[i1];
+                    if (Before(k1, k0))
+                    {
+                        (k0, k1) = (k1, k0);
+                        (u0, u1) = (u1, u0);
+                    }
+                    var key = (k0, k1);
+                    if (!open.TryGetValue(key, out var other))
+                    {
+                        open[key] = (t, u0, u1);
+                        continue;
+                    }
+                    open.Remove(key);
+                    if ((other.uv0 - u0).sqrMagnitude > 1e-10f || (other.uv1 - u1).sqrMagnitude > 1e-10f)
+                        seams.Add(new SeamEdge { TriangleA = other.triangle, TriangleB = t, A0 = other.uv0, A1 = other.uv1, B0 = u0, B1 = u1 });
+                }
+            return seams;
+        }
+
+        static Vector3Int PositionKey(Vector3 p) => new Vector3Int(Mathf.RoundToInt(p.x * 1e4f), Mathf.RoundToInt(p.y * 1e4f), Mathf.RoundToInt(p.z * 1e4f));
+
+        static bool Before(Vector3Int a, Vector3Int b) => a.x != b.x ? a.x < b.x : a.y != b.y ? a.y < b.y : a.z < b.z;
 
         void FindIslands()
         {

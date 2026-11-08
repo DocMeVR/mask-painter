@@ -701,6 +701,10 @@ namespace DocMe.MaskPainter.Editor
 
         public void Invert() => Whole(m => m.Invert());
 
+        public void EvenSeams() => Whole(m => m.EvenSeams());
+
+        public void CopyChannel(MaskChannel from) => Whole(m => m.CopyChannel(from));
+
         void Whole(Action<MaskSession> change)
         {
             if (session == null || !session.IsLive) return;
