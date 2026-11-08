@@ -19,11 +19,11 @@ namespace DocMe.MaskPainter.Editor
 
         DropdownField channelField, viewField;
         Label channelHint, hint;
-        Button[] toolItems, blendItems, paintItems, penItems;
+        Button[] toolItems, blendItems, paintItems, penItems, gradientItems;
         Slider brushField, softnessField, strengthField, overlayField;
         Toggle mirrorField, isolateField;
         Button copyButton;
-        VisualElement blendRow, paintRow, strengthRow, swatch, penRow;
+        VisualElement blendRow, paintRow, strengthRow, swatch, penRow, gradientRow;
         string builtLanguage;
 
         public MaskPaintPanel()
@@ -54,7 +54,8 @@ namespace DocMe.MaskPainter.Editor
                 (MaskText.T("tool.off"), MaskText.T("tool.off.tip"), () => Window?.SetTool(MaskPainterWindow.PaintTool.Off)),
                 (MaskText.T("tool.fill"), MaskText.T("tool.fill.tip"), () => Window?.SetTool(MaskPainterWindow.PaintTool.Fill)),
                 (MaskText.T("tool.brush"), MaskText.T("tool.brush.tip"), () => Window?.SetTool(MaskPainterWindow.PaintTool.Brush)),
-                (MaskText.T("tool.smooth"), MaskText.T("tool.smooth.tip"), () => Window?.SetTool(MaskPainterWindow.PaintTool.Smooth)));
+                (MaskText.T("tool.smooth"), MaskText.T("tool.smooth.tip"), () => Window?.SetTool(MaskPainterWindow.PaintTool.Smooth)),
+                (MaskText.T("tool.gradient"), MaskText.T("tool.gradient.tip"), () => Window?.SetTool(MaskPainterWindow.PaintTool.Gradient)));
             tools.AddToClassList("docme-mp-tools");
             root.Add(tools);
             blendRow = MaskUI.Row(MaskText.T("field.blend"), MaskText.T("field.blend.tip"), MaskUI.Segments(out blendItems,
@@ -65,6 +66,10 @@ namespace DocMe.MaskPainter.Editor
                 (MaskText.T("start.white"), MaskText.T("paint.white.tip"), () => SetPaintsBlack(false)),
                 (MaskText.T("start.black"), MaskText.T("paint.black.tip"), () => SetPaintsBlack(true))));
             root.Add(paintRow);
+            gradientRow = MaskUI.Row(MaskText.T("row.gradient"), MaskText.T("row.gradient.tip"), MaskUI.Segments(out gradientItems,
+                (MaskText.T("gradient.piece"), MaskText.T("gradient.piece.tip"), () => SetGradientEveryPiece(false)),
+                (MaskText.T("gradient.every"), MaskText.T("gradient.every.tip"), () => SetGradientEveryPiece(true))));
+            root.Add(gradientRow);
 
             brushField = new Slider(MaskText.T("field.brush"), MaskPainterWindow.MinBrushCm, MaskPainterWindow.MaxBrushCm) { showInputField = true, tooltip = MaskText.T("field.brush.tip") };
             brushField.RegisterValueChangedCallback(e => { if (Window != null) Window.BrushCm = e.newValue; });
@@ -119,6 +124,13 @@ namespace DocMe.MaskPainter.Editor
             menu.DropDown(copyButton.worldBound);
         }
 
+        void SetGradientEveryPiece(bool every)
+        {
+            if (Window == null) return;
+            Window.GradientEveryPiece = every;
+            Refresh();
+        }
+
         void SetPaintsBlack(bool black)
         {
             if (Window == null) return;
@@ -157,6 +169,8 @@ namespace DocMe.MaskPainter.Editor
             MaskUI.Show(blendRow, painting && !smooth);
             MaskUI.Mark(paintItems, window.PaintsBlack ? 1 : 0);
             MaskUI.Show(paintRow, painting && !smooth);
+            MaskUI.Mark(gradientItems, window.GradientEveryPiece ? 1 : 0);
+            MaskUI.Show(gradientRow, tool == MaskPainterWindow.PaintTool.Gradient);
             brushField.SetValueWithoutNotify(window.BrushCm);
             softnessField.SetValueWithoutNotify(window.Softness);
             MaskUI.Show(brushField, brush);
@@ -177,6 +191,7 @@ namespace DocMe.MaskPainter.Editor
             isolateField.SetValueWithoutNotify(window.OnlyThisMesh);
             MaskUI.Show(overlayField, window.View == MaskShow.Overlay || window.View == MaskShow.EveryChannel);
             hint.text = tool == MaskPainterWindow.PaintTool.Fill ? MaskText.T("hint.fill")
+                : tool == MaskPainterWindow.PaintTool.Gradient ? MaskText.T("hint.gradient")
                 : smooth ? MaskText.T("hint.smooth")
                 : brush ? MaskText.T("hint.brush")
                 : MaskText.T("hint.off");

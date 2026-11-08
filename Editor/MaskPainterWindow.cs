@@ -18,7 +18,7 @@ namespace DocMe.MaskPainter.Editor
 
     public sealed class MaskPainterWindow : EditorWindow
     {
-        public enum PaintTool { Off, Fill, Brush, Smooth }
+        public enum PaintTool { Off, Fill, Brush, Smooth, Gradient }
 
         /// <summary>How hard a drawing tablet pen presses, 0.1 to 1; a mouse or touch always counts as 1.</summary>
         public static float PressureOf(UnityEngine.PointerType pointer, float pressure) =>
@@ -43,6 +43,7 @@ namespace DocMe.MaskPainter.Editor
         [SerializeField] PaintTool tool = PaintTool.Fill;
         [SerializeField] float brushCm = 3f;
         [SerializeField] float softness = 0.5f;
+        [SerializeField] bool gradientEveryPiece;
         [SerializeField] float strength = 1f;
         [SerializeField] MaskBlend blend;
         [SerializeField] bool mirror;
@@ -61,6 +62,9 @@ namespace DocMe.MaskPainter.Editor
         [NonSerialized] bool hoverValid;
         [NonSerialized] bool dragMissed;
         [NonSerialized] int heldControl;
+        [NonSerialized] bool gradientDragging;
+        [NonSerialized] MaskHit gradientStart;
+        [NonSerialized] Vector3 gradientEnd;
         [NonSerialized] string builtLanguage;
         [NonSerialized] bool textureUnused;
         [SerializeField] GameObject isolatedObject;
@@ -171,6 +175,23 @@ namespace DocMe.MaskPainter.Editor
             SceneView.RepaintAll();
         }
         public Renderer Target => target;
+
+        /// <summary>Whether the Gradient tool fills every piece instead of only the one where the drag starts.</summary>
+        public bool GradientEveryPiece
+        {
+            get => gradientEveryPiece;
+            set => gradientEveryPiece = value;
+        }
+
+        /// <summary>Fills a gradient from start to end on the model with the paint the settings give (Shift swaps white and black).</summary>
+        public void Gradient(MaskHit start, Vector3 end, bool shift)
+        {
+            if (!IsPainting || !session.IsValid(start)) return;
+            float value = PaintValue(shift, out float amount);
+            session.Mirror = mirror ? MaskSession.MirrorAcross(MaskFind.AvatarRoot(session.Renderer)) : (Matrix4x4?)null;
+            session.FillGradient(start, end, value, amount, gradientEveryPiece);
+            AfterPaint();
+        }
 
         /// <summary>Where the mouse is on the UV map while it is over the painted part, or null.</summary>
         public Vector2? HoverUv => IsPainting && hoverValid && session.IsValid(hover) ? session.Mesh.UvAt(hover) : (Vector2?)null;
@@ -679,6 +700,7 @@ namespace DocMe.MaskPainter.Editor
                 AfterPaint();
             }
             ReleaseMouse();
+            gradientDragging = false;
             tool = value;
             hoverValid = false;
             Refresh();
@@ -837,6 +859,15 @@ namespace DocMe.MaskPainter.Editor
                     }
                     float value = PaintValue(e.shift, out float amount);
                     if (tool == PaintTool.Fill) session.FillPiece(hover, value, amount);
+                    else if (tool == PaintTool.Gradient)
+                    {
+                        // The gradient is filled when the mouse is let go; until then a line shows it.
+                        gradientStart = hover;
+                        gradientEnd = hover.Point;
+                        gradientDragging = true;
+                        GUIUtility.hotControl = heldControl = id;
+                        break;
+                    }
                     else
                     {
                         Pressure(e, out float sizeScale, out float strengthScale);
@@ -851,6 +882,13 @@ namespace DocMe.MaskPainter.Editor
                 case EventType.MouseDrag:
                     if (GUIUtility.hotControl != id) break;
                     UpdateHover(e);
+                    if (gradientDragging)
+                    {
+                        if (hoverValid) gradientEnd = hover.Point;
+                        e.Use();
+                        view.Repaint();
+                        break;
+                    }
                     if (hoverValid)
                     {
                         Pressure(e, out float sizeScale, out float strengthScale);
@@ -865,12 +903,27 @@ namespace DocMe.MaskPainter.Editor
                 case EventType.MouseUp:
                     if (GUIUtility.hotControl != id || e.button != 0) break;
                     ReleaseMouse();
+                    if (gradientDragging)
+                    {
+                        gradientDragging = false;
+                        Gradient(gradientStart, gradientEnd, e.shift);
+                        e.Use();
+                        break;
+                    }
                     session.EndStroke();
                     e.Use();
                     AfterPaint();
                     break;
 
                 case EventType.KeyDown:
+                    if (gradientDragging && e.keyCode == KeyCode.Escape)
+                    {
+                        gradientDragging = false;
+                        ReleaseMouse();
+                        e.Use();
+                        view.Repaint();
+                        break;
+                    }
                     if (UsesBrush(tool) && (e.keyCode == KeyCode.LeftBracket || e.keyCode == KeyCode.RightBracket))
                     {
                         brushCm = Mathf.Clamp(e.keyCode == KeyCode.LeftBracket ? brushCm / 1.25f : brushCm * 1.25f, MinBrushCm, MaxBrushCm);
@@ -894,6 +947,7 @@ namespace DocMe.MaskPainter.Editor
 
                 case EventType.Repaint:
                     DrawCursor(e);
+                    DrawGradient(e);
                     break;
             }
         }
@@ -934,11 +988,32 @@ namespace DocMe.MaskPainter.Editor
             material.SetFloat("_Channel", MaskLook.Offset(session.Channel));
             material.SetColor("_Tint", MaskLook.Tint(session.Channel));
             material.SetFloat("_Opacity", overlayStrength);
-            material.SetFloat("_Hover", hoverValid && tool == PaintTool.Fill && session.IsValid(hover) ? session.IslandAt(hover) : -1f);
+            bool picksPiece = tool == PaintTool.Fill || (tool == PaintTool.Gradient && !gradientEveryPiece && !gradientDragging);
+            material.SetFloat("_Hover", hoverValid && picksPiece && session.IsValid(hover) ? session.IslandAt(hover) : -1f);
             for (int pass = 0; pass < 2; pass++)
             {
                 material.SetPass(pass);
                 Graphics.DrawMeshNow(session.PreviewMesh, Matrix4x4.identity);
+            }
+        }
+
+        /// <summary>The Gradient tool's line from where the drag started to the mouse, and a dot where it would start.</summary>
+        void DrawGradient(Event e)
+        {
+            if (tool != PaintTool.Gradient) return;
+            var colour = e.shift != paintsBlack ? new Color(0.1f, 0.1f, 0.1f, 1f) : MaskLook.Tint(session.Channel);
+            using (new Handles.DrawingScope(colour))
+            {
+                if (gradientDragging && session.IsValid(gradientStart))
+                {
+                    var normal = session.Mesh.NormalAt(gradientStart);
+                    float size = HandleUtility.GetHandleSize(gradientStart.Point) * 0.06f;
+                    Handles.DrawAAPolyLine(3f, gradientStart.Point, gradientEnd);
+                    Handles.DrawWireDisc(gradientStart.Point, normal, size, 2f);
+                    Handles.DrawWireDisc(gradientEnd, normal, size * 0.6f, 2f);
+                }
+                else if (hoverValid && session.IsValid(hover))
+                    Handles.DrawWireDisc(hover.Point, session.Mesh.NormalAt(hover), HandleUtility.GetHandleSize(hover.Point) * 0.04f, 2f);
             }
         }
 

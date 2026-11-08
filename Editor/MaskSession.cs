@@ -262,6 +262,31 @@ namespace DocMe.MaskPainter.Editor
             return new RectInt(x0, y0, Mathf.Max(a.xMax, b.xMax) - x0, Mathf.Max(a.yMax, b.yMax) - y0);
         }
 
+        /// <summary>
+        /// Fills a gradient as one Undo step: value at amount from start (and behind it) fading along the model to
+        /// nothing at end. Only the piece under start, or every piece; with Mirror the mirrored side fades the same way.
+        /// </summary>
+        public void FillGradient(MaskHit start, Vector3 end, float value, float amount, bool everyPiece)
+        {
+            if (IsStroking) EndStroke();
+            if (!IsValid(start)) return;
+            var pieces = new bool[mesh.IslandCount];
+            if (everyPiece)
+                for (int k = 0; k < pieces.Length; k++) pieces[k] = true;
+            else pieces[IslandAt(start)] = true;
+            Matrix4x4? mirror = null;
+            if (MirroredHit(start, out var mirrored))
+            {
+                mirror = Mirror;
+                pieces[IslandAt(mirrored)] = true;
+            }
+            var area = Canvas.PiecesArea(pieces);
+            if (area.width <= 0 || area.height <= 0) return;
+            var before = Canvas.Snapshot(area);
+            Canvas.Gradient(pieces, start.Point, end, value, amount, mirror);
+            Record(MaskText.T("undo.gradient"), area, before);
+        }
+
         /// <summary>Gives both sides of every UV seam the same value, as one Undo step.</summary>
         public void EvenSeams()
         {

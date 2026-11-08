@@ -829,6 +829,161 @@ namespace DocMe.MaskPainter.Editor
             return from <= to + 1f;
         }
 
+        /// <summary>The rectangle the picked pieces cover, with their bleed; empty when none is picked.</summary>
+        public RectInt PiecesArea(bool[] pieces)
+        {
+            int x0 = Width, y0 = Height, x1 = 0, y1 = 0;
+            for (int k = 0; k < pieces.Length && k < islandRects.Length; k++)
+            {
+                if (!pieces[k] || islandRects[k].width == 0) continue;
+                var rect = IslandArea(k);
+                x0 = Mathf.Min(x0, rect.xMin);
+                y0 = Mathf.Min(y0, rect.yMin);
+                x1 = Mathf.Max(x1, rect.xMax);
+                y1 = Mathf.Max(y1, rect.yMax);
+            }
+            return x1 <= x0 || y1 <= y0 ? new RectInt(0, 0, 0, 0) : new RectInt(x0, y0, x1 - x0, y1 - y0);
+        }
+
+        /// <summary>
+        /// Moves the texels of the picked pieces toward value: by amount at start and behind it, fading along the line to
+        /// end, leaving texels past end alone. Each texel's place comes from its triangle, so the fade follows the model
+        /// and runs across UV seams. With mirror, texels on the far side of the mirror plane fade along the mirrored line.
+        /// </summary>
+        public void Gradient(bool[] pieces, Vector3 start, Vector3 end, float value, float amount, Matrix4x4? mirror = null)
+        {
+            var area = PiecesArea(pieces);
+            if (area.width <= 0 || area.height <= 0) return;
+            var line = end - start;
+            var sink = new GradientSink
+            {
+                Canvas = this,
+                Start = start,
+                Line = line,
+                Inverse = line.sqrMagnitude > 1e-12f ? 1f / line.sqrMagnitude : 0f,
+                Value = value,
+                Amount = Mathf.Clamp01(amount),
+                X0 = area.xMin,
+                Y0 = area.yMin,
+                W = area.width,
+            };
+            if (mirror.HasValue)
+            {
+                var m = mirror.Value;
+                Vector3 mirroredStart = m.MultiplyPoint3x4(start), mirroredEnd = m.MultiplyPoint3x4(end);
+                // The mirror plane lies half way between a point and its mirror image, across the line joining them.
+                var (point, image) = (start - mirroredStart).sqrMagnitude > 1e-12f ? (start, mirroredStart) : (end, mirroredEnd);
+                if ((point - image).sqrMagnitude > 1e-12f)
+                {
+                    sink.Mirrored = true;
+                    sink.MirrorStart = mirroredStart;
+                    sink.MirrorLine = mirroredEnd - mirroredStart;
+                    sink.PlanePoint = (point + image) * 0.5f;
+                    sink.PlaneNormal = point - image;
+                }
+            }
+            int size = area.width * area.height;
+            if (visitBuffer == null || visitBuffer.Length < size)
+            {
+                visitBuffer = new int[Mathf.Max(size, 4096)];
+                visitMark = 0;
+            }
+            if (++visitMark == int.MaxValue)
+            {
+                Array.Clear(visitBuffer, 0, visitBuffer.Length);
+                visitMark = 1;
+            }
+            sink.Visited = visitBuffer;
+            sink.Mark = visitMark;
+            for (int t = 0; t < mesh.TriangleCount; t++)
+                if (mesh.Island[t] < pieces.Length && pieces[mesh.Island[t]]) Scan(t, ref sink);
+            BleedIntoGaps(area);
+            MarkChanged(Grow(area, Bleed));
+        }
+
+        interface ITexelSink
+        {
+            void Take(int x, int y, Vector3 point);
+        }
+
+        /// <summary>A gradient's texel: moved once, by the amount its place along the line gives.</summary>
+        struct GradientSink : ITexelSink
+        {
+            public MaskCanvas Canvas;
+            public Vector3 Start, Line, MirrorStart, MirrorLine, PlanePoint, PlaneNormal;
+            public bool Mirrored;
+            public float Inverse, Value, Amount;
+            public int[] Visited;
+            public int Mark, X0, Y0, W;
+
+            public void Take(int x, int y, Vector3 point)
+            {
+                int local = (y - Y0) * W + (x - X0);
+                if (Visited[local] == Mark) return;
+                Visited[local] = Mark;
+                bool other = Mirrored && Vector3.Dot(point - PlanePoint, PlaneNormal) < 0f;
+                float along = Mathf.Clamp01(Vector3.Dot(point - (other ? MirrorStart : Start), other ? MirrorLine : Line) * Inverse);
+                float amount = Amount * (1f - along);
+                if (amount <= 0f) return;
+                int i = y * Canvas.Width + x;
+                Canvas.Values[i] += (Value - Canvas.Values[i]) * amount;
+            }
+        }
+
+        /// <summary>
+        /// Every texel whose centre lies in triangle t on the UV map, with its place on the model, row by row; a triangle
+        /// too small to hold a texel centre gives the texel under its middle.
+        /// </summary>
+        void Scan<T>(int t, ref T sink) where T : struct, ITexelSink
+        {
+            var p = mesh.Positions;
+            var tri = mesh.Triangles;
+            var uv = mesh.Uvs;
+            var pa = p[tri[3 * t]];
+            var pb = p[tri[3 * t + 1]];
+            var pc = p[tri[3 * t + 2]];
+            var a = Vector2.Scale(uv[tri[3 * t]], new Vector2(Width, Height));
+            var b = Vector2.Scale(uv[tri[3 * t + 1]], new Vector2(Width, Height));
+            var c = Vector2.Scale(uv[tri[3 * t + 2]], new Vector2(Width, Height));
+            float area = (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y);
+            bool any = false;
+            if (Mathf.Abs(area) > 1e-9f)
+            {
+                int x0 = Mathf.Max(0, Mathf.FloorToInt(Mathf.Min(a.x, Mathf.Min(b.x, c.x))));
+                int x1 = Mathf.Min(Width - 1, Mathf.CeilToInt(Mathf.Max(a.x, Mathf.Max(b.x, c.x))));
+                int y0 = Mathf.Max(0, Mathf.FloorToInt(Mathf.Min(a.y, Mathf.Min(b.y, c.y))));
+                int y1 = Mathf.Min(Height - 1, Mathf.CeilToInt(Mathf.Max(a.y, Mathf.Max(b.y, c.y))));
+                const float eps = -1e-5f;
+                float inverse = 1f / area;
+                float cyay = c.y - a.y, cxax = c.x - a.x, bxax = b.x - a.x, byay = b.y - a.y;
+                float stepB = cyay * inverse, stepC = -byay * inverse, stepA = -(stepB + stepC);
+                var step = pa * stepA + pb * stepB + pc * stepC;
+                for (int y = y0; y <= y1; y++)
+                {
+                    float syay = y + 0.5f - a.y;
+                    float sxax = x0 + 0.5f - a.x;
+                    float baseB = (sxax * cyay - cxax * syay) * inverse;
+                    float baseC = (bxax * syay - sxax * byay) * inverse;
+                    float baseA = 1f - baseB - baseC;
+                    float from = 0f, to = x1 - x0;
+                    if (!Span(baseA, stepA, eps, ref from, ref to) || !Span(baseB, stepB, eps, ref from, ref to) || !Span(baseC, stepC, eps, ref from, ref to)) continue;
+                    int kFrom = Mathf.Max(0, Mathf.FloorToInt(from) - 1), kTo = Mathf.Min(x1 - x0, Mathf.CeilToInt(to) + 1);
+                    var first = pa * baseA + pb * baseB + pc * baseC;
+                    for (int k = kFrom; k <= kTo; k++)
+                    {
+                        float wa = baseA + stepA * k, wb = baseB + stepB * k, wc = baseC + stepC * k;
+                        if (wa < eps || wb < eps || wc < eps) continue;
+                        any = true;
+                        sink.Take(x0 + k, y, first + step * k);
+                    }
+                }
+            }
+            if (any) return;
+            var centre = (a + b + c) / 3f;
+            int mx = Mathf.FloorToInt(centre.x), my = Mathf.FloorToInt(centre.y);
+            if (mx >= 0 && my >= 0 && mx < Width && my < Height) sink.Take(mx, my, (pa + pb + pc) / 3f);
+        }
+
         void AddHit(int index, float weight)
         {
             if (hitIndex == null || hitCount == hitIndex.Length)

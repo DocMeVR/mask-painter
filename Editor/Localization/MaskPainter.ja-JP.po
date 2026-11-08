@@ -703,3 +703,43 @@ msgstr "空"
 #. en: The mask on the UV map, with each piece's outline and a ring where the mouse is on the model.
 msgid "uvview.tip"
 msgstr "UVマップ上のマスクです。パーツの輪郭と、モデル上のマウス位置を示す輪が出ます。"
+
+#. en: Gradient
+msgid "tool.gradient"
+msgstr "グラデーション"
+
+#. en: Drag across the model to fade from full where you start to nothing where you let go.
+msgid "tool.gradient.tip"
+msgstr "モデルの上をドラッグすると、始めた所から離した所へ向かって薄くなるように塗ります。"
+
+#. en: Drag from where the mask should be full to where it should fade out. Esc cancels.
+msgid "hint.gradient"
+msgstr "濃くしたい所から消したい所までドラッグします。Escで取り消し。"
+
+#. en: Fills
+msgid "row.gradient"
+msgstr "塗る範囲"
+
+#. en: Which pieces the gradient fills.
+msgid "row.gradient.tip"
+msgstr "グラデーションを入れるパーツ。"
+
+#. en: This piece
+msgid "gradient.piece"
+msgstr "このパーツ"
+
+#. en: Only the piece where the drag starts.
+msgid "gradient.piece.tip"
+msgstr "ドラッグを始めたパーツだけ。"
+
+#. en: Every piece
+msgid "gradient.every"
+msgstr "全パーツ"
+
+#. en: Every piece of this material, so the fade runs across UV seams.
+msgid "gradient.every.tip"
+msgstr "このマテリアルの全パーツ。UVの継ぎ目をまたいでつながります。"
+
+#. en: Gradient fill
+msgid "undo.gradient"
+msgstr "グラデーション塗り"

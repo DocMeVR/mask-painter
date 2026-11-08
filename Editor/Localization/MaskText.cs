@@ -195,6 +195,16 @@ namespace DocMe.MaskPainter.Editor
             "picker.other",
             "picker.empty",
             "uvview.tip",
+            "tool.gradient",
+            "tool.gradient.tip",
+            "hint.gradient",
+            "row.gradient",
+            "row.gradient.tip",
+            "gradient.piece",
+            "gradient.piece.tip",
+            "gradient.every",
+            "gradient.every.tip",
+            "undo.gradient",
         };
 
         public static string T(string key) => Find(key, MaskLanguage.Current);

@@ -20,7 +20,7 @@ Optional, without the Creator Companion: download the `.unitypackage` from the [
 1. Open **Tools > DocMe > Mask Painter**. A selected mesh is already in **Mesh**; if not, drag one in from the Hierarchy (for example Body). Pick the **Material** the mask is for. Leave **UV map** on UV0 unless that material reads its mask from another UV map.
 2. To keep painting a mask you already have, drag it into **Texture** or press **From the material**. The tool finds the mesh and material that use it. Or right-click the texture in the Project window and pick **DocMe > Paint in Mask Painter**. For a new mask, leave **Texture** empty and pick **New mask** (Black or White) and its **Size**.
 3. Press **Paint this texture** (or **Start painting** for a new mask). The painting tools show in the **Mask Painter** panel in the Scene view.
-4. Pick a tool at the top of the panel. **Fill pieces** fills the piece of the model you click, **Brush** paints where you drag, and **Smooth** softens an edge you drag over. Shift paints the other colour. Tick **Mirror** to paint both sides at once.
+4. Pick a tool at the top of the panel. **Fill pieces** fills the piece of the model you click, **Brush** paints where you drag, **Smooth** softens an edge you drag over, and **Gradient** fades from where you start a drag to where you let go. Shift paints the other colour. Tick **Mirror** to paint both sides at once.
 5. Press **Save** (or **Save as...** for a new file). For a new mask, press the **Slot** button, type part of the slot's name (for example "emission"), pick it and press **Put into material**.
 
 ## Shortcuts
@@ -44,6 +44,7 @@ The letter keys work only while a painting is open and the Scene view has focus.
 - With a drawing tablet, **Pen pressure** makes the brush smaller when you press lightly (**Size**, on by default) or paint less (**Strength**).
 - **Paint: Add** moves the mask toward the colour you paint by **Strength**, so low values build up greys over several strokes. **Paint: Replace** paints one exact **Grey level**.
 - **Paint into** picks the colour channel you paint: **All channels (grey)** for a plain mask, or **Red**, **Green**, **Blue** or **Alpha** alone. Each channel shows in its own colour. **Show: Every channel** shows red, green and blue together, handy for masks like Skin Touch's that use two channels. **Copy from...** copies another channel into the one you paint.
+- **Gradient** fills the piece where the drag starts, or **Every piece** so the fade runs across UV seams. It follows the model, not the UV map, and Esc cancels a drag.
 - **UV seams: Even out** gives both sides of every UV seam the same value. Use it when a dent or an effect shows a thin line along a seam.
 - To paint under clothes, tick **Only this mesh**. It hides everything else in the Scene view until you untick it or close the window.
 - The window shows your mask on the UV map with each piece's outline, and a ring where the mouse is on the model.

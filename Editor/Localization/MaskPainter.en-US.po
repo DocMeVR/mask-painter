@@ -527,3 +527,33 @@ msgstr "empty"
 
 msgid "uvview.tip"
 msgstr "The mask on the UV map, with each piece's outline and a ring where the mouse is on the model."
+
+msgid "tool.gradient"
+msgstr "Gradient"
+
+msgid "tool.gradient.tip"
+msgstr "Drag across the model to fade from full where you start to nothing where you let go."
+
+msgid "hint.gradient"
+msgstr "Drag from where the mask should be full to where it should fade out. Esc cancels."
+
+msgid "row.gradient"
+msgstr "Fills"
+
+msgid "row.gradient.tip"
+msgstr "Which pieces the gradient fills."
+
+msgid "gradient.piece"
+msgstr "This piece"
+
+msgid "gradient.piece.tip"
+msgstr "Only the piece where the drag starts."
+
+msgid "gradient.every"
+msgstr "Every piece"
+
+msgid "gradient.every.tip"
+msgstr "Every piece of this material, so the fade runs across UV seams."
+
+msgid "undo.gradient"
+msgstr "Gradient fill"
