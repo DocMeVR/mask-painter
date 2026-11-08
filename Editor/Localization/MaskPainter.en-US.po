@@ -247,7 +247,7 @@ msgid "button.put.tip"
 msgstr "Saves the mask if needed and puts it into the chosen slot; Ctrl+Z takes it out again."
 
 msgid "status.saved"
-msgstr "Saved {0}."
+msgstr "Saved {0} as {1}."
 
 msgid "status.put"
 msgstr "Put into {0}: {1}."
@@ -446,3 +446,12 @@ msgstr "Paints white, or the Grey level with Replace."
 
 msgid "paint.black.tip"
 msgstr "Paints black, so Shift paints white."
+
+msgid "format.bc4"
+msgstr "BC4 (red only)"
+
+msgid "format.bc5"
+msgstr "BC5 (red and green)"
+
+msgid "format.bc7"
+msgstr "BC7"

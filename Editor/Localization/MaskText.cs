@@ -168,6 +168,9 @@ namespace DocMe.MaskPainter.Editor
             "row.paints.tip",
             "paint.white.tip",
             "paint.black.tip",
+            "format.bc4",
+            "format.bc5",
+            "format.bc7",
         };
 
         public static string T(string key) => Find(key, MaskLanguage.Current);

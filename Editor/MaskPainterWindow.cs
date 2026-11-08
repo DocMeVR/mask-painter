@@ -641,10 +641,13 @@ namespace DocMe.MaskPainter.Editor
             return SaveTo(session.SavedPath);
         }
 
+        static string FormatKey(TextureImporterFormat format) =>
+            format == TextureImporterFormat.BC4 ? "format.bc4" : format == TextureImporterFormat.BC5 ? "format.bc5" : "format.bc7";
+
         bool SaveTo(string path)
         {
             bool saved = TrySave(session, path, out var error);
-            status = saved ? MaskText.T("status.saved", path) : error;
+            status = saved ? MaskText.T("status.saved", path, MaskText.T(FormatKey(MaskFile.FormatFor(session.Canvas)))) : error;
             Refresh();
             return saved;
         }

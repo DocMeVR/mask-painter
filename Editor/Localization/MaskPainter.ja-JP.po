@@ -328,9 +328,9 @@ msgstr "マテリアルに入れる"
 msgid "button.put.tip"
 msgstr "必要ならマスクを保存し、選んだスロットに入れます。Ctrl+Zで取り出せます。"
 
-#. en: Saved {0}.
+#. en: Saved {0} as {1}.
 msgid "status.saved"
-msgstr "{0}に保存しました。"
+msgstr "{0}に{1}で保存しました。"
 
 #. en: Put into {0}: {1}.
 msgid "status.put"
@@ -595,3 +595,15 @@ msgstr "白で塗ります。置き換えではグレーの値で塗ります。
 #. en: Paints black, so Shift paints white.
 msgid "paint.black.tip"
 msgstr "黒で塗ります。Shiftで白になります。"
+
+#. en: BC4 (red only)
+msgid "format.bc4"
+msgstr "BC4（赤のみ）"
+
+#. en: BC5 (red and green)
+msgid "format.bc5"
+msgstr "BC5（赤と緑）"
+
+#. en: BC7
+msgid "format.bc7"
+msgstr "BC7"
