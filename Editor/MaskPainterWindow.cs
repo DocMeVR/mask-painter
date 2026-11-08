@@ -49,6 +49,7 @@ namespace DocMe.MaskPainter.Editor
         [SerializeField] bool paintsBlack;
         [SerializeField] bool pressureSize = true;
         [SerializeField] bool pressureStrength;
+        [SerializeField] bool onlyThisMesh;
         [SerializeField, UnityEngine.Serialization.FormerlySerializedAs("showMode")] MaskShow shown;
         [SerializeField] float overlayStrength = 0.6f;
         [SerializeField] string slot;
@@ -61,6 +62,8 @@ namespace DocMe.MaskPainter.Editor
         [NonSerialized] int heldControl;
         [NonSerialized] string builtLanguage;
         [NonSerialized] bool textureUnused;
+        [NonSerialized] GameObject isolatedObject;
+        [NonSerialized] bool isolating;
 
         ObjectField meshField, textureField;
         DropdownField materialField, uvField, sizeField;
@@ -88,6 +91,57 @@ namespace DocMe.MaskPainter.Editor
         }
 
         public void SwapPaint() => PaintsBlack = !paintsBlack;
+
+        /// <summary>
+        /// Hides every other object in the Scene view while painting (Unity's isolation). The tool ends only an isolation
+        /// it started: when unticked, when the painting ends and when the window closes.
+        /// </summary>
+        public bool OnlyThisMesh
+        {
+            get => onlyThisMesh;
+            set
+            {
+                onlyThisMesh = value;
+                Isolate();
+            }
+        }
+
+        void Isolate()
+        {
+            var visibility = SceneVisibilityManager.instance;
+            var renderer = IsPainting ? session.Renderer : null;
+            if (onlyThisMesh && renderer != null && Active == this)
+            {
+                if (isolating && isolatedObject == renderer.gameObject && visibility.IsCurrentStageIsolated()) return;
+                visibility.Isolate(renderer.gameObject, false);
+                isolating = true;
+                isolatedObject = renderer.gameObject;
+            }
+            else EndIsolation();
+        }
+
+        void EndIsolation()
+        {
+            if (!isolating) return;
+            if (SceneVisibilityManager.instance.IsCurrentStageIsolated()) SceneVisibilityManager.instance.ExitIsolation();
+            isolating = false;
+            isolatedObject = null;
+        }
+
+        /// <summary>
+        /// Keeps Only this mesh and the Scene view in step: the creator ended the isolation there (untick to match), or a
+        /// script reload ended it (start it again).
+        /// </summary>
+        void FollowIsolation()
+        {
+            if (isolating && !SceneVisibilityManager.instance.IsCurrentStageIsolated())
+            {
+                isolating = false;
+                isolatedObject = null;
+                onlyThisMesh = false;
+            }
+            else if (onlyThisMesh && !isolating && IsPainting) Isolate();
+        }
 
         /// <summary>A pen's pressure makes the brush smaller.</summary>
         public bool PressureSize
@@ -244,6 +298,7 @@ namespace DocMe.MaskPainter.Editor
         {
             if (Active == this) Active = Resources.FindObjectsOfTypeAll<MaskPainterWindow>().FirstOrDefault(w => w != this);
             MaskShortcuts.Sync();
+            EndIsolation();
             SceneView.duringSceneGui -= OnSceneGUI;
             Undo.undoRedoPerformed -= OnUndoRedo;
             ReleaseMouse();
@@ -438,6 +493,7 @@ namespace DocMe.MaskPainter.Editor
         void Refresh()
         {
             MaskShortcuts.Sync();
+            FollowIsolation();
             if (meshField == null) return;
             // A mesh that was deleted and brought back with Ctrl+Z picks up where it was.
             if (session != null && !session.IsLive && session.Renderer != null) session.Restore();
@@ -612,6 +668,7 @@ namespace DocMe.MaskPainter.Editor
             session = MaskSession.Start(target, uvChannel, materialIndex, size, from, startTexture);
             status = session == null ? MaskText.T("mesh.none") : null;
             if (tool == PaintTool.Off) tool = PaintTool.Fill;
+            Isolate();
             Refresh();
             SceneView.RepaintAll();
         }

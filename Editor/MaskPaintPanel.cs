@@ -21,7 +21,7 @@ namespace DocMe.MaskPainter.Editor
         Label channelHint, hint, strengthLabel;
         Button[] toolItems, blendItems, paintItems, penItems;
         Slider brushField, softnessField, strengthField, overlayField;
-        Toggle mirrorField;
+        Toggle mirrorField, isolateField;
         VisualElement blendRow, paintRow, strengthRow, swatch, penRow;
         string builtLanguage;
 
@@ -89,6 +89,9 @@ namespace DocMe.MaskPainter.Editor
             overlayField = new Slider(MaskText.T("field.overlay"), 0f, 1f) { showInputField = true, tooltip = MaskText.T("field.overlay.tip") };
             overlayField.RegisterValueChangedCallback(e => { if (Window != null) Window.OverlayStrength = e.newValue; });
             root.Add(overlayField);
+            isolateField = new Toggle(MaskText.T("field.isolate")) { tooltip = MaskText.T("field.isolate.tip") };
+            isolateField.RegisterValueChangedCallback(e => { if (Window != null) Window.OnlyThisMesh = e.newValue; });
+            root.Add(isolateField);
             root.Add(MaskUI.Row(MaskText.T("row.whole"), MaskText.T("row.whole.tip"), MaskUI.Wrap(
                 MaskUI.Button(MaskText.T("button.allblack"), MaskText.T("button.allblack.tip"), () => Window?.FillAll(0f)),
                 MaskUI.Button(MaskText.T("button.allwhite"), MaskText.T("button.allwhite.tip"), () => Window?.FillAll(1f)),
@@ -153,6 +156,7 @@ namespace DocMe.MaskPainter.Editor
             int viewIndex = System.Array.IndexOf(ViewOrder, window.View);
             viewField.SetValueWithoutNotify(ViewChoices[Mathf.Max(0, viewIndex)]);
             overlayField.SetValueWithoutNotify(window.OverlayStrength);
+            isolateField.SetValueWithoutNotify(window.OnlyThisMesh);
             MaskUI.Show(overlayField, window.View == MaskShow.Overlay || window.View == MaskShow.EveryChannel);
             hint.text = tool == MaskPainterWindow.PaintTool.Fill ? MaskText.T("hint.fill")
                 : smooth ? MaskText.T("hint.smooth")

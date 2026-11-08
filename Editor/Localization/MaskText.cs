@@ -180,6 +180,8 @@ namespace DocMe.MaskPainter.Editor
             "pen.size.tip",
             "pen.strength",
             "pen.strength.tip",
+            "field.isolate",
+            "field.isolate.tip",
         };
 
         public static string T(string key) => Find(key, MaskLanguage.Current);

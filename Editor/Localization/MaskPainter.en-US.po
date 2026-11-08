@@ -139,7 +139,7 @@ msgid "hint.off"
 msgstr "Pick Fill pieces, Brush or Smooth to paint in the Scene view."
 
 msgid "hint.clothes"
-msgstr "To paint under clothes, hide them with the eye icon in the Hierarchy: it hides them only in the Scene view."
+msgstr "To paint under clothes, tick Only this mesh in the Scene view panel."
 
 msgid "row.whole"
 msgstr "Whole mask"
@@ -482,3 +482,9 @@ msgstr "Strength"
 
 msgid "pen.strength.tip"
 msgstr "Pressing lightly paints or smooths less."
+
+msgid "field.isolate"
+msgstr "Only this mesh"
+
+msgid "field.isolate.tip"
+msgstr "Hides every other object in the Scene view while you paint, so clothes are out of the way."

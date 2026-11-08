@@ -184,9 +184,9 @@ msgstr "モデル上をドラッグで塗り、Shiftを押すともう一方の�
 msgid "hint.off"
 msgstr "パーツ塗り、ブラシ、ぼかしのどれかを選ぶと、シーンビューで塗れます。"
 
-#. en: To paint under clothes, hide them with the eye icon in the Hierarchy: it hides them only in the Scene view.
+#. en: To paint under clothes, tick Only this mesh in the Scene view panel.
 msgid "hint.clothes"
-msgstr "服の下を塗るには、ヒエラルキーの目のアイコンで服を隠します。隠れるのはシーンビューだけです。"
+msgstr "服の下を塗るときは、シーンビューのパネルで「このメッシュだけ」をオンにします。"
 
 #. en: Whole mask
 msgid "row.whole"
@@ -643,3 +643,11 @@ msgstr "強さ"
 #. en: Pressing lightly paints or smooths less.
 msgid "pen.strength.tip"
 msgstr "軽く押すと、塗る量やぼかす量が減ります。"
+
+#. en: Only this mesh
+msgid "field.isolate"
+msgstr "このメッシュだけ"
+
+#. en: Hides every other object in the Scene view while you paint, so clothes are out of the way.
+msgid "field.isolate.tip"
+msgstr "ペイント中はシーンビューでほかのオブジェクトを隠すので、服が邪魔になりません。"
