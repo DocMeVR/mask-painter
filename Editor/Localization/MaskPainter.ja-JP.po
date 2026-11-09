@@ -48,14 +48,6 @@ msgstr "UVマップ"
 msgid "field.uv.tip"
 msgstr "マスクが沿うUVマップです。Poiyomiのマスクはほとんどの場合UV0を使います。"
 
-#. en: Start with
-msgid "field.start"
-msgstr "開始時の内容"
-
-#. en: What the new mask is before you paint on it.
-msgid "field.start.tip"
-msgstr "塗り始める前の、新しいマスクの状態です。"
-
 #. en: Black
 msgid "start.black"
 msgstr "黒"
@@ -64,17 +56,13 @@ msgstr "黒"
 msgid "start.white"
 msgstr "白"
 
-#. en: A texture
-msgid "start.texture"
-msgstr "テクスチャ"
-
 #. en: Texture
 msgid "field.texture"
 msgstr "テクスチャ"
 
-#. en: An existing mask to keep painting on, with its size and every channel kept.
+#. en: A texture to keep painting on; the tool finds the mesh and material that use it.
 msgid "field.texture.tip"
-msgstr "続きを塗りたい既存のマスクで、サイズとすべてのチャンネルがそのまま引き継がれます。"
+msgstr "続きを塗るテクスチャです。使っているメッシュとマテリアルは自動で見つけます。"
 
 #. en: Size
 msgid "field.size"
@@ -92,9 +80,9 @@ msgstr "ペイントを始める"
 msgid "button.startover"
 msgstr "最初からやり直す"
 
-#. en: Starts a new mask with these settings; the mesh and its materials stay as they are.
+#. en: Starts a new mask with these settings.
 msgid "button.start.tip"
-msgstr "この設定で新しいマスクを作ります。メッシュとマテリアルは変わりません。"
+msgstr "この設定で新しいマスクを始めます。"
 
 #. en: (empty)
 msgid "material.empty"
@@ -128,45 +116,37 @@ msgstr "{0}: {2}に1個のパーツ、{3} x {4}ピクセル。"
 msgid "mesh.describe.many"
 msgstr "{0}: {2}に{1}個のパーツ、{3} x {4}ピクセル。"
 
-#. en: Click does
-msgid "row.tool"
-msgstr "クリック操作"
-
-#. en: What a click in the Scene view does while this window is open.
-msgid "row.tool.tip"
-msgstr "このウィンドウを開いている間、シーンビューでクリックしたときの動作です。"
-
-#. en: Off
+#. en: Select
 msgid "tool.off"
-msgstr "オフ"
+msgstr "選択"
 
 #. en: Clicks in the Scene view select objects as usual.
 msgid "tool.off.tip"
-msgstr "シーンビューのクリックは、いつもどおりオブジェクトを選択します。"
+msgstr "シーンビューのクリックで、いつも通りオブジェクトを選択します。"
 
 #. en: Fill pieces
 msgid "tool.fill"
 msgstr "パーツ塗り"
 
-#. en: A click fills the whole piece of the model under the mouse.
+#. en: A click fills the whole piece of the model under the mouse (G).
 msgid "tool.fill.tip"
-msgstr "クリックすると、マウス下にあるモデルのパーツ全体を塗ります。"
+msgstr "クリックすると、マウス下にあるモデルのパーツ全体を塗ります（G）。"
 
 #. en: Brush
 msgid "tool.brush"
 msgstr "ブラシ"
 
-#. en: Drag on the model to paint with a round brush.
+#. en: Drag on the model to paint with a round brush (B).
 msgid "tool.brush.tip"
-msgstr "モデル上をドラッグして、丸いブラシで塗ります。"
+msgstr "モデル上をドラッグして、丸いブラシで塗ります（B）。"
 
 #. en: Brush size (cm)
 msgid "field.brush"
 msgstr "ブラシ幅 (cm)"
 
-#. en: How wide the brush is on the model, in centimetres: the [ and ] keys change it too.
+#. en: How wide the brush is on the model, in centimetres; [ and ] or Ctrl+mouse wheel change it too.
 msgid "field.brush.tip"
-msgstr "モデル上のブラシの幅をセンチメートルで指定します。[ キーと ] キーでも変えられます。"
+msgstr "モデル上のブラシの幅をセンチメートルで指定します。[ と ] キー、Ctrl+マウスホイールでも変えられます。"
 
 #. en: Softness
 msgid "field.softness"
@@ -192,21 +172,21 @@ msgstr "ミラー"
 msgid "field.mirror.tip"
 msgstr "アバターの左右反対側にも同じように塗ります。"
 
-#. en: Click a piece of the model in the Scene view to fill it white. Shift+click fills it black.
+#. en: Click a piece of the model to fill it, Shift+click for the other colour. Ctrl+click picks the grey under the mouse.
 msgid "hint.fill"
-msgstr "シーンビューでモデルのパーツをクリックすると白で塗りつぶします。Shift+クリックで黒になります。"
+msgstr "モデルのパーツをクリックで塗り、Shift+クリックでもう一方の色になります。Ctrl+クリックでマウス下のグレーを拾います。"
 
-#. en: Drag on the model in the Scene view to paint white. Hold Shift to paint black. Alt+drag still turns the view.
+#. en: Drag on the model to paint, hold Shift for the other colour. Ctrl+click picks the grey under the mouse, and Alt+drag still turns the view.
 msgid "hint.brush"
-msgstr "シーンビューでモデル上をドラッグすると白で塗ります。Shiftを押すと黒で塗ります。Alt+ドラッグで視点を回せます。"
+msgstr "モデル上をドラッグで塗り、Shiftを押すともう一方の色になります。Ctrl+クリックでマウス下のグレーを拾い、Alt+ドラッグで視点を回せます。"
 
-#. en: Pick Fill pieces or Brush to paint in the Scene view.
+#. en: Pick Fill pieces, Brush or Smooth to paint in the Scene view.
 msgid "hint.off"
-msgstr "シーンビューで塗るには、パーツ塗りかブラシを選んでください。"
+msgstr "パーツ塗り、ブラシ、ぼかしのどれかを選ぶと、シーンビューで塗れます。"
 
-#. en: To paint under clothes, hide them with the eye icon in the Hierarchy: it hides them only in the Scene view.
+#. en: To paint under clothes, tick Only this mesh in the Scene view panel.
 msgid "hint.clothes"
-msgstr "服の下を塗るには、ヒエラルキーの目のアイコンで服を隠します。隠れるのはシーンビューだけです。"
+msgstr "服の下を塗るときは、シーンビューのパネルで「このメッシュだけ」をオンにします。"
 
 #. en: Whole mask
 msgid "row.whole"
@@ -244,13 +224,13 @@ msgstr "白と黒をすべて入れ替えます。"
 msgid "field.show"
 msgstr "表示"
 
-#. en: How the Scene view shows the mask on the model: green over its colours, the mask's own greys, or nothing. Your materials do not change.
+#. en: What the Scene view draws over the model: one channel or every channel in its own colour, the mask's greys, or nothing.
 msgid "field.show.tip"
-msgstr "シーンビューでマスクをどう見せるかを選びます。元の色の上に緑で重ねる、マスクそのものの灰色、または表示なしです。マテリアルは変わりません。"
+msgstr "シーンビューでモデルに重ねる表示です。チャンネルごとの色、マスクのグレー、何も出さない、から選べます。"
 
-#. en: Overlay
+#. en: This channel
 msgid "show.overlay"
-msgstr "重ねて表示"
+msgstr "このチャンネル"
 
 #. en: Mask only
 msgid "show.mask"
@@ -308,9 +288,9 @@ msgstr "マテリアルのどのテクスチャスロットにマスクを入れ
 msgid "button.pickslot"
 msgstr "スロットを選ぶ"
 
-#. en: Opens a searchable list of the material's texture slots, mask slots first.
+#. en: Opens a search list of the material's texture slots, mask slots first.
 msgid "button.pickslot.tip"
-msgstr "マテリアルのテクスチャスロットを検索できる一覧を開きます。マスク用のスロットが先に並びます。"
+msgstr "マテリアルのテクスチャスロットを検索できる一覧で開きます。マスクのスロットが先に並びます。"
 
 #. en: {0}: click to pick another slot.
 msgid "button.pickslot.picked"
@@ -340,9 +320,9 @@ msgstr "マテリアルに入れる"
 msgid "button.put.tip"
 msgstr "必要ならマスクを保存し、選んだスロットに入れます。Ctrl+Zで取り出せます。"
 
-#. en: Saved {0}.
+#. en: Saved {0} as {1}.
 msgid "status.saved"
-msgstr "{0}に保存しました。"
+msgstr "{0}に{1}で保存しました。"
 
 #. en: Put into {0}: {1}.
 msgid "status.put"
@@ -388,10 +368,6 @@ msgstr "保存"
 msgid "quit.discard"
 msgstr "保存せずに終了"
 
-#. en: Texture slots
-msgid "picker.title"
-msgstr "テクスチャスロット"
-
 #. en: Fill mask piece
 msgid "undo.fillpiece"
 msgstr "マスクのパーツを塗る"
@@ -420,13 +396,13 @@ msgstr "マスクを{0}に入れる"
 msgid "field.language.tip"
 msgstr "このウィンドウの表示言語です。Modular Avatar など NDMF を使うツールと同じ設定を共有します。"
 
-#. en: Take it from the material
+#. en: From the material
 msgid "button.fromslot"
-msgstr "マテリアルから取り込む"
+msgstr "マテリアルから"
 
-#. en: Starts from the texture in one of the material's slots, and puts the mask back into that slot later.
+#. en: Opens the texture in one of the material's slots and remembers the slot for Put into material.
 msgid "button.fromslot.tip"
-msgstr "マテリアルのスロットにあるテクスチャから始め、あとでマスクを同じスロットに戻します。"
+msgstr "マテリアルのスロットにあるテクスチャを開き、そのスロットを「マテリアルに入れる」用に覚えておきます。"
 
 #. en: {0} holds no texture to start from.
 msgid "status.slotempty"
@@ -512,17 +488,17 @@ msgstr "塗りつぶしやストロークを白へ重ねていくか、決まっ
 msgid "blend.add"
 msgstr "加算"
 
-#. en: Each fill or stroke moves the mask toward white by Strength, and toward black with Shift.
+#. en: Each fill or stroke moves the mask toward the colour it paints by Strength.
 msgid "blend.add.tip"
-msgstr "塗るたびに Strength の分だけ白へ、Shift を押すと黒へ近づけます。"
+msgstr "塗るたびに、強さの分だけ塗る色へ近づけます。"
 
 #. en: Replace
 msgid "blend.replace"
 msgstr "置き換え"
 
-#. en: Each fill or stroke sets the mask to the Grey level, and to black with Shift.
+#. en: Each fill or stroke sets the mask to the Grey level, or to black.
 msgid "blend.replace.tip"
-msgstr "塗った場所を Grey level のグレーに、Shift を押すと黒にします。"
+msgstr "塗った場所を、グレーの値か黒そのものにします。"
 
 #. en: Grey level
 msgid "field.level"
@@ -531,3 +507,239 @@ msgstr "グレーの値"
 #. en: The grey a fill or stroke paints, from 0 for black to 1 for white.
 msgid "field.level.tip"
 msgstr "塗りつぶしやストロークで塗るグレーで、0 が黒、1 が白です。"
+
+#. en: Texture
+msgid "section.texture"
+msgstr "テクスチャ"
+
+#. en: Painting
+msgid "section.painting"
+msgstr "ペイント中"
+
+#. en: None (a new mask)
+msgid "hint.texture.empty"
+msgstr "なし（新しいマスク）"
+
+#. en: New mask
+msgid "row.newmask"
+msgstr "新しいマスク"
+
+#. en: What a new mask is before you paint on it.
+msgid "row.newmask.tip"
+msgstr "塗る前の新しいマスクの色です。"
+
+#. en: The new mask starts black, so the effect shows nowhere until you paint.
+msgid "start.black.tip"
+msgstr "黒から始めます。塗るまでエフェクトはどこにも出ません。"
+
+#. en: The new mask starts white, so the effect shows everywhere until you paint black.
+msgid "start.white.tip"
+msgstr "白から始めます。黒で塗るまでエフェクトは全体に出ます。"
+
+#. en: Paint this texture
+msgid "button.paintthis"
+msgstr "このテクスチャを塗る"
+
+#. en: Opens the texture with its size and every channel, ready to paint.
+msgid "button.paintthis.tip"
+msgstr "サイズと全チャンネルをそのままに開き、すぐ塗れる状態にします。"
+
+#. en: Save writes back into this file after asking.
+msgid "note.texture.writeback"
+msgstr "保存するとこのファイルに上書きします。その前に確認があります。"
+
+#. en: This file is only read. The first save asks where the mask goes.
+msgid "note.texture.readonly"
+msgstr "このファイルは読み込むだけです。最初の保存で保存先を選びます。"
+
+#. en: No material in the open scenes uses this texture. Pick the mesh and material it is for.
+msgid "note.texture.nouser"
+msgstr "開いているシーンに、このテクスチャを使うマテリアルがありません。使う予定のメッシュとマテリアルを選んでください。"
+
+#. en: Every channel
+msgid "show.every"
+msgstr "全チャンネル"
+
+#. en: Overlay strength
+msgid "field.overlay"
+msgstr "重ねる濃さ"
+
+#. en: How strongly the colours cover the model in the Scene view.
+msgid "field.overlay.tip"
+msgstr "シーンビューでモデルに重ねる色の濃さです。"
+
+#. en: Paints
+msgid "row.paints"
+msgstr "塗る色"
+
+#. en: The colour a click or stroke paints; Shift paints the other one and X swaps them.
+msgid "row.paints.tip"
+msgstr "クリックやドラッグで塗る色です。Shiftでもう一方の色になり、Xで入れ替えます。"
+
+#. en: Paints white, or the Grey level with Replace.
+msgid "paint.white.tip"
+msgstr "白で塗ります。置き換えではグレーの値で塗ります。"
+
+#. en: Paints black, so Shift paints white.
+msgid "paint.black.tip"
+msgstr "黒で塗ります。Shiftで白になります。"
+
+#. en: BC4 (red only)
+msgid "format.bc4"
+msgstr "BC4（赤のみ）"
+
+#. en: BC5 (red and green)
+msgid "format.bc5"
+msgstr "BC5（赤と緑）"
+
+#. en: BC7
+msgid "format.bc7"
+msgstr "BC7"
+
+#. en: Smooth
+msgid "tool.smooth"
+msgstr "ぼかし"
+
+#. en: Drag on the model to soften the mask's edges (S).
+msgid "tool.smooth.tip"
+msgstr "モデル上をドラッグして、マスクの境目をぼかします（S）。"
+
+#. en: Drag over an edge to soften it. Each pass softens a little more, and pieces never blur into each other.
+msgid "hint.smooth"
+msgstr "境目をドラッグするとぼかせます。なぞるたびに少しずつぼけ、別のパーツとは混ざりません。"
+
+#. en: How much each pass of the Smooth brush softens the mask.
+msgid "field.smooth.tip"
+msgstr "ぼかしブラシで1回なぞったときのぼかし量です。"
+
+#. en: Smooth mask
+msgid "undo.smooth"
+msgstr "マスクをぼかす"
+
+#. en: Pen pressure
+msgid "row.pen"
+msgstr "筆圧"
+
+#. en: With a drawing tablet, how hard you press changes these; a mouse always paints at full.
+msgid "row.pen.tip"
+msgstr "ペンタブレットでは、押す強さでこれらが変わります。マウスは常に最大で塗ります。"
+
+#. en: Size
+msgid "pen.size"
+msgstr "サイズ"
+
+#. en: Pressing lightly makes the brush smaller, down to a tenth of its size.
+msgid "pen.size.tip"
+msgstr "軽く押すとブラシが小さくなります。最小で10分の1です。"
+
+#. en: Strength
+msgid "pen.strength"
+msgstr "強さ"
+
+#. en: Pressing lightly paints or smooths less.
+msgid "pen.strength.tip"
+msgstr "軽く押すと、塗る量やぼかす量が減ります。"
+
+#. en: Only this mesh
+msgid "field.isolate"
+msgstr "このメッシュだけ"
+
+#. en: Hides every other object in the Scene view while you paint, so clothes are out of the way.
+msgid "field.isolate.tip"
+msgstr "ペイント中はシーンビューでほかのオブジェクトを隠すので、服が邪魔になりません。"
+
+#. en: Copy from...
+msgid "button.copyfrom"
+msgstr "ほかから写す..."
+
+#. en: Copies another channel into the one you paint.
+msgid "button.copyfrom.tip"
+msgstr "ほかのチャンネルの内容を、塗っているチャンネルに写します。"
+
+#. en: UV seams
+msgid "row.seams"
+msgstr "UVの継ぎ目"
+
+#. en: Even out
+msgid "button.seams"
+msgstr "そろえる"
+
+#. en: Gives both sides of every UV seam the same value, so a dent or effect shows no line along the seam.
+msgid "button.seams.tip"
+msgstr "UVの継ぎ目の両側を同じ値にそろえ、へこみやエフェクトに継ぎ目の線が出ないようにします。"
+
+#. en: Even out mask seams
+msgid "undo.seams"
+msgstr "マスクの継ぎ目をそろえる"
+
+#. en: Copy mask channel
+msgid "undo.copy"
+msgstr "マスクのチャンネルを写す"
+
+#. en: Type part of a name. Up, Down and Enter pick one.
+msgid "search.tip"
+msgstr "名前の一部を入力します。↑↓で移動し、Enterで選べます。"
+
+#. en: Search
+msgid "search.placeholder"
+msgstr "検索"
+
+#. en: Nothing matches "{0}"
+msgid "search.none"
+msgstr "「{0}」に合うものはありません"
+
+#. en: Mask slots
+msgid "picker.masks"
+msgstr "マスクのスロット"
+
+#. en: Other textures
+msgid "picker.other"
+msgstr "ほかのテクスチャ"
+
+#. en: empty
+msgid "picker.empty"
+msgstr "空"
+
+#. en: The mask on the UV map, with each piece's outline and a ring where the mouse is on the model.
+msgid "uvview.tip"
+msgstr "UVマップ上のマスクです。パーツの輪郭と、モデル上のマウス位置を示す輪が出ます。"
+
+#. en: Gradient
+msgid "tool.gradient"
+msgstr "グラデーション"
+
+#. en: Drag across the model to fade from full where you start to nothing where you let go.
+msgid "tool.gradient.tip"
+msgstr "モデルの上をドラッグすると、始めた所から離した所へ向かって薄くなるように塗ります。"
+
+#. en: Drag from where the mask should be full to where it should fade out. Esc cancels.
+msgid "hint.gradient"
+msgstr "濃くしたい所から消したい所までドラッグします。Escで取り消し。"
+
+#. en: Fills
+msgid "row.gradient"
+msgstr "塗る範囲"
+
+#. en: Which pieces the gradient fills.
+msgid "row.gradient.tip"
+msgstr "グラデーションを入れるパーツ。"
+
+#. en: This piece
+msgid "gradient.piece"
+msgstr "このパーツ"
+
+#. en: Only the piece where the drag starts.
+msgid "gradient.piece.tip"
+msgstr "ドラッグを始めたパーツだけ。"
+
+#. en: Every piece
+msgid "gradient.every"
+msgstr "全パーツ"
+
+#. en: Every piece of this material, so the fade runs across UV seams.
+msgid "gradient.every.tip"
+msgstr "このマテリアルの全パーツ。UVの継ぎ目をまたいでつながります。"
+
+#. en: Gradient fill
+msgid "undo.gradient"
+msgstr "グラデーション塗り"

@@ -17,6 +17,16 @@ namespace DocMe.MaskPainter.Editor
     /// A mesh as the painter needs it: its corners in world space, one UV channel, its triangles and its UV islands
     /// (pieces of the UV map: triangles joined by corners with the same UV).
     /// </summary>
+    /// <summary>
+    /// One edge the model shares between two triangles that lie apart on the UV map: A0 and B0 are where its first end
+    /// lies on each side, A1 and B1 its second end.
+    /// </summary>
+    public struct SeamEdge
+    {
+        public int TriangleA, TriangleB;
+        public Vector2 A0, A1, B0, B1;
+    }
+
     public sealed class MaskMesh
     {
         public Vector3[] Positions;
@@ -77,41 +87,31 @@ namespace DocMe.MaskPainter.Editor
         }
 
         /// <summary>Reads the renderer's current pose and place again; the UVs and islands stay. False if its mesh changed.</summary>
-        public bool Rebake(Renderer renderer)
+        public bool Rebake(Renderer renderer) => Rebake(renderer, out _);
+
+        /// <param name="moved">Whether any corner is somewhere else now; the triangle index is kept when none is.</param>
+        public bool Rebake(Renderer renderer, out bool moved)
         {
+            moved = false;
             var source = SourceMesh(renderer);
             if (source == null || source.vertexCount != Positions.Length) return false;
-            Positions = WorldPositions(renderer);
-            triangleMin = null;
-            triangleMax = null;
+            var fresh = WorldPositions(renderer);
+            for (int i = 0; i < fresh.Length && !moved; i++) moved = fresh[i] != Positions[i];
+            if (moved) Positions = fresh;
             return true;
         }
 
-        Vector3[] triangleMin;
-        Vector3[] triangleMax;
+        MaskTriangleIndex index;
+        readonly List<int> nearby = new List<int>();
+
+        MaskTriangleIndex Index => index != null && index.Source == Positions ? index : index = new MaskTriangleIndex(Positions, Triangles);
 
         /// <summary>Whether triangle t's bounding box comes within distance of point.</summary>
-        public bool TriangleNear(int t, Vector3 point, float distance)
-        {
-            if (triangleMin == null)
-            {
-                triangleMin = new Vector3[TriangleCount];
-                triangleMax = new Vector3[TriangleCount];
-                for (int k = 0; k < TriangleCount; k++)
-                {
-                    var a = Positions[Triangles[3 * k]];
-                    var b = Positions[Triangles[3 * k + 1]];
-                    var c = Positions[Triangles[3 * k + 2]];
-                    triangleMin[k] = Vector3.Min(a, Vector3.Min(b, c));
-                    triangleMax[k] = Vector3.Max(a, Vector3.Max(b, c));
-                }
-            }
-            var min = triangleMin[t];
-            var max = triangleMax[t];
-            return point.x >= min.x - distance && point.x <= max.x + distance
-                && point.y >= min.y - distance && point.y <= max.y + distance
-                && point.z >= min.z - distance && point.z <= max.z + distance;
-        }
+        public bool TriangleNear(int t, Vector3 point, float distance) =>
+            MaskTriangleIndex.Within(Index.TriangleMin[t], Index.TriangleMax[t], point, distance);
+
+        /// <summary>The triangles whose bounding boxes come within distance of point (TriangleNear), in index order.</summary>
+        public void TrianglesNear(Vector3 point, float distance, List<int> into) => Index.Near(point, distance, into);
 
         public Vector3 NormalAt(MaskHit hit) => FaceNormal(hit.Triangle).normalized;
 
@@ -147,6 +147,42 @@ namespace DocMe.MaskPainter.Editor
                 return false;
             }
         }
+
+        /// <summary>Every edge two triangles share on the model (ends within 0.1 mm) whose sides lie apart on the UV map.</summary>
+        public List<SeamEdge> SeamEdges()
+        {
+            var seams = new List<SeamEdge>();
+            var open = new Dictionary<(Vector3Int, Vector3Int), (int triangle, Vector2 uv0, Vector2 uv1)>();
+            for (int t = 0; t < TriangleCount; t++)
+                for (int e = 0; e < 3; e++)
+                {
+                    int i0 = Triangles[3 * t + e], i1 = Triangles[3 * t + (e + 1) % 3];
+                    var k0 = PositionKey(Positions[i0]);
+                    var k1 = PositionKey(Positions[i1]);
+                    if (k0 == k1) continue;
+                    var u0 = Uvs[i0];
+                    var u1 = Uvs[i1];
+                    if (Before(k1, k0))
+                    {
+                        (k0, k1) = (k1, k0);
+                        (u0, u1) = (u1, u0);
+                    }
+                    var key = (k0, k1);
+                    if (!open.TryGetValue(key, out var other))
+                    {
+                        open[key] = (t, u0, u1);
+                        continue;
+                    }
+                    open.Remove(key);
+                    if ((other.uv0 - u0).sqrMagnitude > 1e-10f || (other.uv1 - u1).sqrMagnitude > 1e-10f)
+                        seams.Add(new SeamEdge { TriangleA = other.triangle, TriangleB = t, A0 = other.uv0, A1 = other.uv1, B0 = u0, B1 = u1 });
+                }
+            return seams;
+        }
+
+        static Vector3Int PositionKey(Vector3 p) => new Vector3Int(Mathf.RoundToInt(p.x * 1e4f), Mathf.RoundToInt(p.y * 1e4f), Mathf.RoundToInt(p.z * 1e4f));
+
+        static bool Before(Vector3Int a, Vector3Int b) => a.x != b.x ? a.x < b.x : a.y != b.y ? a.y < b.y : a.z < b.z;
 
         void FindIslands()
         {
@@ -188,32 +224,9 @@ namespace DocMe.MaskPainter.Editor
         public bool Raycast(Ray ray, out MaskHit hit)
         {
             hit = default;
-            hit.Distance = float.MaxValue;
-            hit.Triangle = -1;
-            for (int t = 0; t < TriangleCount; t++)
-            {
-                var a = Positions[Triangles[3 * t]];
-                var b = Positions[Triangles[3 * t + 1]];
-                var c = Positions[Triangles[3 * t + 2]];
-                var e1 = b - a;
-                var e2 = c - a;
-                var p = Vector3.Cross(ray.direction, e2);
-                float det = Vector3.Dot(e1, p);
-                if (Mathf.Abs(det) < 1e-12f) continue;
-                float inv = 1f / det;
-                var s = ray.origin - a;
-                float u = Vector3.Dot(s, p) * inv;
-                if (u < 0f || u > 1f) continue;
-                var q = Vector3.Cross(s, e1);
-                float v = Vector3.Dot(ray.direction, q) * inv;
-                if (v < 0f || u + v > 1f) continue;
-                float d = Vector3.Dot(e2, q) * inv;
-                if (d <= 0f || d >= hit.Distance) continue;
-                hit.Distance = d;
-                hit.Triangle = t;
-                hit.Barycentric = new Vector3(1f - u - v, u, v);
-            }
+            hit.Triangle = Index.Raycast(Positions, ray.origin, ray.direction, out hit.Distance, out float u, out float v);
             if (hit.Triangle < 0) return false;
+            hit.Barycentric = new Vector3(1f - u - v, u, v);
             hit.Point = ray.GetPoint(hit.Distance);
             return true;
         }
@@ -246,9 +259,9 @@ namespace DocMe.MaskPainter.Editor
             float best = reach;
             var origin = point + normal * reach;
             var direction = -normal;
-            for (int t = 0; t < TriangleCount; t++)
+            TrianglesNear(point, reach, nearby);
+            foreach (int t in nearby)
             {
-                if (!TriangleNear(t, point, reach)) continue;
                 if (Vector3.Dot(FaceNormal(t).normalized, normal) < 0.5f) continue;
                 var a = Positions[Triangles[3 * t]];
                 var e1 = Positions[Triangles[3 * t + 1]] - a;
@@ -273,6 +286,20 @@ namespace DocMe.MaskPainter.Editor
                 hit.Point = origin + direction * along;
             }
             return hit.Triangle >= 0;
+        }
+
+        /// <summary>How many texels of a width x height map one metre of triangle t covers, along one side.</summary>
+        public float TexelsPerMetre(int t, int width, int height)
+        {
+            var p0 = Positions[Triangles[3 * t]];
+            var p1 = Positions[Triangles[3 * t + 1]];
+            var p2 = Positions[Triangles[3 * t + 2]];
+            var u0 = Uvs[Triangles[3 * t]];
+            var a = Vector2.Scale(Uvs[Triangles[3 * t + 1]] - u0, new Vector2(width, height));
+            var b = Vector2.Scale(Uvs[Triangles[3 * t + 2]] - u0, new Vector2(width, height));
+            float world = Vector3.Cross(p1 - p0, p2 - p0).magnitude;
+            float texels = Mathf.Abs(a.x * b.y - a.y * b.x);
+            return world > 1e-12f ? Mathf.Sqrt(texels / world) : 0f;
         }
 
         public Vector2 UvAt(MaskHit hit)

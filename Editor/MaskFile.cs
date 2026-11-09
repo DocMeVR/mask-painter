@@ -41,13 +41,40 @@ namespace DocMe.MaskPainter.Editor
                 importer.alphaIsTransparency = false;
                 if (importer.maxTextureSize < size) importer.maxTextureSize = size;
                 if (importer.textureCompression == TextureImporterCompression.Compressed) importer.textureCompression = TextureImporterCompression.CompressedHQ;
-                importer.SaveAndReimport();
             }
-            if (LiftLossyOverrides(importer, canvas)) importer.SaveAndReimport();
+            settings |= SetPcFormat(importer, canvas, size);
+            settings |= LiftLossyOverrides(importer, canvas);
+            if (settings) importer.SaveAndReimport();
             return AssetDatabase.LoadAssetAtPath<Texture2D>(assetPath);
         }
 
-        static readonly string[] Platforms = { "Standalone", "Android", "iPhone" };
+        /// <summary>
+        /// The PC format that keeps what the mask holds at the smallest good size: BC4 when only red holds anything, BC5
+        /// when red and green do, BC7 otherwise. A grey mask is BC7, since a shader may read any of its channels. None of
+        /// them bands a soft gradient the way BC1 does.
+        /// </summary>
+        public static TextureImporterFormat FormatFor(MaskCanvas canvas)
+        {
+            canvas.ChannelsUsed(out bool green, out bool blue, out bool alpha);
+            if (alpha || blue) return TextureImporterFormat.BC7;
+            return green ? TextureImporterFormat.BC5 : TextureImporterFormat.BC4;
+        }
+
+        /// <summary>Sets the PC override to FormatFor, never smaller than the mask and never crunched. True when it changed.</summary>
+        static bool SetPcFormat(TextureImporter importer, MaskCanvas canvas, int size)
+        {
+            var format = FormatFor(canvas);
+            var pc = importer.GetPlatformTextureSettings("Standalone");
+            if (pc.overridden && pc.format == format && pc.maxTextureSize >= size && !pc.crunchedCompression) return false;
+            pc.overridden = true;
+            pc.format = format;
+            pc.maxTextureSize = Mathf.Max(size, pc.maxTextureSize);
+            pc.crunchedCompression = false;
+            importer.SetPlatformTextureSettings(pc);
+            return true;
+        }
+
+        static readonly string[] Platforms = { "Android", "iPhone" };
 
         /// <summary>
         /// Turns off a platform's own format where it keeps fewer channels than the mask uses (a red only format reads

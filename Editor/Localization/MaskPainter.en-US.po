@@ -36,26 +36,17 @@ msgstr "UV map"
 msgid "field.uv.tip"
 msgstr "Which of the mesh's UV maps the mask follows: most Poiyomi masks use UV0."
 
-msgid "field.start"
-msgstr "Start with"
-
-msgid "field.start.tip"
-msgstr "What the new mask is before you paint on it."
-
 msgid "start.black"
 msgstr "Black"
 
 msgid "start.white"
 msgstr "White"
 
-msgid "start.texture"
-msgstr "A texture"
-
 msgid "field.texture"
 msgstr "Texture"
 
 msgid "field.texture.tip"
-msgstr "An existing mask to keep painting on, with its size and every channel kept."
+msgstr "A texture to keep painting on; the tool finds the mesh and material that use it."
 
 msgid "field.size"
 msgstr "Size"
@@ -70,7 +61,7 @@ msgid "button.startover"
 msgstr "Start over"
 
 msgid "button.start.tip"
-msgstr "Starts a new mask with these settings; the mesh and its materials stay as they are."
+msgstr "Starts a new mask with these settings."
 
 msgid "material.empty"
 msgstr "(empty)"
@@ -96,14 +87,8 @@ msgstr "{0}: 1 piece on {2}, {3} x {4} pixels."
 msgid "mesh.describe.many"
 msgstr "{0}: {1} pieces on {2}, {3} x {4} pixels."
 
-msgid "row.tool"
-msgstr "Click does"
-
-msgid "row.tool.tip"
-msgstr "What a click in the Scene view does while this window is open."
-
 msgid "tool.off"
-msgstr "Off"
+msgstr "Select"
 
 msgid "tool.off.tip"
 msgstr "Clicks in the Scene view select objects as usual."
@@ -112,19 +97,19 @@ msgid "tool.fill"
 msgstr "Fill pieces"
 
 msgid "tool.fill.tip"
-msgstr "A click fills the whole piece of the model under the mouse."
+msgstr "A click fills the whole piece of the model under the mouse (G)."
 
 msgid "tool.brush"
 msgstr "Brush"
 
 msgid "tool.brush.tip"
-msgstr "Drag on the model to paint with a round brush."
+msgstr "Drag on the model to paint with a round brush (B)."
 
 msgid "field.brush"
 msgstr "Brush size (cm)"
 
 msgid "field.brush.tip"
-msgstr "How wide the brush is on the model, in centimetres: the [ and ] keys change it too."
+msgstr "How wide the brush is on the model, in centimetres; [ and ] or Ctrl+mouse wheel change it too."
 
 msgid "field.softness"
 msgstr "Softness"
@@ -145,16 +130,16 @@ msgid "field.mirror.tip"
 msgstr "Paints and fills the same on the other side of the avatar, left and right."
 
 msgid "hint.fill"
-msgstr "Click a piece of the model in the Scene view to fill it white. Shift+click fills it black."
+msgstr "Click a piece of the model to fill it, Shift+click for the other colour. Ctrl+click picks the grey under the mouse."
 
 msgid "hint.brush"
-msgstr "Drag on the model in the Scene view to paint white. Hold Shift to paint black. Alt+drag still turns the view."
+msgstr "Drag on the model to paint, hold Shift for the other colour. Ctrl+click picks the grey under the mouse, and Alt+drag still turns the view."
 
 msgid "hint.off"
-msgstr "Pick Fill pieces or Brush to paint in the Scene view."
+msgstr "Pick Fill pieces, Brush or Smooth to paint in the Scene view."
 
 msgid "hint.clothes"
-msgstr "To paint under clothes, hide them with the eye icon in the Hierarchy: it hides them only in the Scene view."
+msgstr "To paint under clothes, tick Only this mesh in the Scene view panel."
 
 msgid "row.whole"
 msgstr "Whole mask"
@@ -184,10 +169,10 @@ msgid "field.show"
 msgstr "Show"
 
 msgid "field.show.tip"
-msgstr "How the Scene view shows the mask on the model: green over its colours, the mask's own greys, or nothing. Your materials do not change."
+msgstr "What the Scene view draws over the model: one channel or every channel in its own colour, the mask's greys, or nothing."
 
 msgid "show.overlay"
-msgstr "Overlay"
+msgstr "This channel"
 
 msgid "show.mask"
 msgstr "Mask only"
@@ -232,7 +217,7 @@ msgid "button.pickslot"
 msgstr "Pick a slot"
 
 msgid "button.pickslot.tip"
-msgstr "Opens a searchable list of the material's texture slots, mask slots first."
+msgstr "Opens a search list of the material's texture slots, mask slots first."
 
 msgid "button.pickslot.picked"
 msgstr "{0}: click to pick another slot."
@@ -256,7 +241,7 @@ msgid "button.put.tip"
 msgstr "Saves the mask if needed and puts it into the chosen slot; Ctrl+Z takes it out again."
 
 msgid "status.saved"
-msgstr "Saved {0}."
+msgstr "Saved {0} as {1}."
 
 msgid "status.put"
 msgstr "Put into {0}: {1}."
@@ -291,9 +276,6 @@ msgstr "Save"
 msgid "quit.discard"
 msgstr "Quit without saving"
 
-msgid "picker.title"
-msgstr "Texture slots"
-
 msgid "undo.fillpiece"
 msgstr "Fill mask piece"
 
@@ -316,10 +298,10 @@ msgid "field.language.tip"
 msgstr "The language of this window. Modular Avatar and other tools that use NDMF share this choice."
 
 msgid "button.fromslot"
-msgstr "Take it from the material"
+msgstr "From the material"
 
 msgid "button.fromslot.tip"
-msgstr "Starts from the texture in one of the material's slots, and puts the mask back into that slot later."
+msgstr "Opens the texture in one of the material's slots and remembers the slot for Put into material."
 
 msgid "status.slotempty"
 msgstr "{0} holds no texture to start from."
@@ -385,16 +367,193 @@ msgid "blend.add"
 msgstr "Add"
 
 msgid "blend.add.tip"
-msgstr "Each fill or stroke moves the mask toward white by Strength, and toward black with Shift."
+msgstr "Each fill or stroke moves the mask toward the colour it paints by Strength."
 
 msgid "blend.replace"
 msgstr "Replace"
 
 msgid "blend.replace.tip"
-msgstr "Each fill or stroke sets the mask to the Grey level, and to black with Shift."
+msgstr "Each fill or stroke sets the mask to the Grey level, or to black."
 
 msgid "field.level"
 msgstr "Grey level"
 
 msgid "field.level.tip"
 msgstr "The grey a fill or stroke paints, from 0 for black to 1 for white."
+
+msgid "section.texture"
+msgstr "Texture"
+
+msgid "section.painting"
+msgstr "Painting"
+
+msgid "hint.texture.empty"
+msgstr "None (a new mask)"
+
+msgid "row.newmask"
+msgstr "New mask"
+
+msgid "row.newmask.tip"
+msgstr "What a new mask is before you paint on it."
+
+msgid "start.black.tip"
+msgstr "The new mask starts black, so the effect shows nowhere until you paint."
+
+msgid "start.white.tip"
+msgstr "The new mask starts white, so the effect shows everywhere until you paint black."
+
+msgid "button.paintthis"
+msgstr "Paint this texture"
+
+msgid "button.paintthis.tip"
+msgstr "Opens the texture with its size and every channel, ready to paint."
+
+msgid "note.texture.writeback"
+msgstr "Save writes back into this file after asking."
+
+msgid "note.texture.readonly"
+msgstr "This file is only read. The first save asks where the mask goes."
+
+msgid "note.texture.nouser"
+msgstr "No material in the open scenes uses this texture. Pick the mesh and material it is for."
+
+msgid "show.every"
+msgstr "Every channel"
+
+msgid "field.overlay"
+msgstr "Overlay strength"
+
+msgid "field.overlay.tip"
+msgstr "How strongly the colours cover the model in the Scene view."
+
+msgid "row.paints"
+msgstr "Paints"
+
+msgid "row.paints.tip"
+msgstr "The colour a click or stroke paints; Shift paints the other one and X swaps them."
+
+msgid "paint.white.tip"
+msgstr "Paints white, or the Grey level with Replace."
+
+msgid "paint.black.tip"
+msgstr "Paints black, so Shift paints white."
+
+msgid "format.bc4"
+msgstr "BC4 (red only)"
+
+msgid "format.bc5"
+msgstr "BC5 (red and green)"
+
+msgid "format.bc7"
+msgstr "BC7"
+
+msgid "tool.smooth"
+msgstr "Smooth"
+
+msgid "tool.smooth.tip"
+msgstr "Drag on the model to soften the mask's edges (S)."
+
+msgid "hint.smooth"
+msgstr "Drag over an edge to soften it. Each pass softens a little more, and pieces never blur into each other."
+
+msgid "field.smooth.tip"
+msgstr "How much each pass of the Smooth brush softens the mask."
+
+msgid "undo.smooth"
+msgstr "Smooth mask"
+
+msgid "row.pen"
+msgstr "Pen pressure"
+
+msgid "row.pen.tip"
+msgstr "With a drawing tablet, how hard you press changes these; a mouse always paints at full."
+
+msgid "pen.size"
+msgstr "Size"
+
+msgid "pen.size.tip"
+msgstr "Pressing lightly makes the brush smaller, down to a tenth of its size."
+
+msgid "pen.strength"
+msgstr "Strength"
+
+msgid "pen.strength.tip"
+msgstr "Pressing lightly paints or smooths less."
+
+msgid "field.isolate"
+msgstr "Only this mesh"
+
+msgid "field.isolate.tip"
+msgstr "Hides every other object in the Scene view while you paint, so clothes are out of the way."
+
+msgid "button.copyfrom"
+msgstr "Copy from..."
+
+msgid "button.copyfrom.tip"
+msgstr "Copies another channel into the one you paint."
+
+msgid "row.seams"
+msgstr "UV seams"
+
+msgid "button.seams"
+msgstr "Even out"
+
+msgid "button.seams.tip"
+msgstr "Gives both sides of every UV seam the same value, so a dent or effect shows no line along the seam."
+
+msgid "undo.seams"
+msgstr "Even out mask seams"
+
+msgid "undo.copy"
+msgstr "Copy mask channel"
+
+msgid "search.tip"
+msgstr "Type part of a name. Up, Down and Enter pick one."
+
+msgid "search.placeholder"
+msgstr "Search"
+
+msgid "search.none"
+msgstr "Nothing matches \"{0}\""
+
+msgid "picker.masks"
+msgstr "Mask slots"
+
+msgid "picker.other"
+msgstr "Other textures"
+
+msgid "picker.empty"
+msgstr "empty"
+
+msgid "uvview.tip"
+msgstr "The mask on the UV map, with each piece's outline and a ring where the mouse is on the model."
+
+msgid "tool.gradient"
+msgstr "Gradient"
+
+msgid "tool.gradient.tip"
+msgstr "Drag across the model to fade from full where you start to nothing where you let go."
+
+msgid "hint.gradient"
+msgstr "Drag from where the mask should be full to where it should fade out. Esc cancels."
+
+msgid "row.gradient"
+msgstr "Fills"
+
+msgid "row.gradient.tip"
+msgstr "Which pieces the gradient fills."
+
+msgid "gradient.piece"
+msgstr "This piece"
+
+msgid "gradient.piece.tip"
+msgstr "Only the piece where the drag starts."
+
+msgid "gradient.every"
+msgstr "Every piece"
+
+msgid "gradient.every.tip"
+msgstr "Every piece of this material, so the fade runs across UV seams."
+
+msgid "undo.gradient"
+msgstr "Gradient fill"

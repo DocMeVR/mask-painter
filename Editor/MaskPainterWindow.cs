@@ -18,12 +18,18 @@ namespace DocMe.MaskPainter.Editor
 
     public sealed class MaskPainterWindow : EditorWindow
     {
-        public enum PaintTool { Off, Fill, Brush }
+        public enum PaintTool { Off, Fill, Brush, Smooth, Gradient }
+
+        /// <summary>How hard a drawing tablet pen presses, 0.1 to 1; a mouse or touch always counts as 1.</summary>
+        public static float PressureOf(UnityEngine.PointerType pointer, float pressure) =>
+            pointer == UnityEngine.PointerType.Pen ? Mathf.Clamp(pressure, 0.1f, 1f) : 1f;
+
+        /// <summary>Whether the tool paints with the round brush (Brush or Smooth).</summary>
+        static bool UsesBrush(PaintTool t) => t == PaintTool.Brush || t == PaintTool.Smooth;
 
         static readonly int ControlHint = "DocMeMaskPainter".GetHashCode();
         static readonly string[] UvChoices = { "UV0", "UV1", "UV2", "UV3" };
         static readonly int[] Sizes = { 512, 1024, 2048, 4096 };
-        static string[] StartChoices => new[] { MaskText.T("start.black"), MaskText.T("start.white"), MaskText.T("start.texture") };
         public const float MinBrushCm = 0.5f, MaxBrushCm = 20f;
         const int MaxStartSize = 4096;
 
@@ -37,11 +43,18 @@ namespace DocMe.MaskPainter.Editor
         [SerializeField] PaintTool tool = PaintTool.Fill;
         [SerializeField] float brushCm = 3f;
         [SerializeField] float softness = 0.5f;
+        [SerializeField] bool gradientEveryPiece;
         [SerializeField] float strength = 1f;
         [SerializeField] MaskBlend blend;
         [SerializeField] bool mirror;
-        [SerializeField] int showMode;
+        [SerializeField] bool paintsBlack;
+        [SerializeField] bool pressureSize = true;
+        [SerializeField] bool pressureStrength;
+        [SerializeField] bool onlyThisMesh;
+        [SerializeField, UnityEngine.Serialization.FormerlySerializedAs("showMode")] MaskShow shown;
+        [SerializeField] float overlayStrength = 0.6f;
         [SerializeField] string slot;
+        [SerializeField] string startSlot;
         [SerializeField] string status;
 
         [NonSerialized] Material overlay;
@@ -49,19 +62,161 @@ namespace DocMe.MaskPainter.Editor
         [NonSerialized] bool hoverValid;
         [NonSerialized] bool dragMissed;
         [NonSerialized] int heldControl;
+        [NonSerialized] bool gradientDragging;
+        [NonSerialized] MaskHit gradientStart;
+        [NonSerialized] Vector3 gradientEnd;
         [NonSerialized] string builtLanguage;
+        [NonSerialized] bool textureUnused;
+        [SerializeField] GameObject isolatedObject;
+        [SerializeField] bool isolating;
 
         ObjectField meshField, textureField;
-        DropdownField materialField, uvField, startField, sizeField;
+        DropdownField materialField, uvField, sizeField;
         Button startButton, saveButton, saveAsButton, putButton, slotButton, fromSlotButton;
-        Label meshInfo, paintNote, clothesHint, savedLabel, statusLabel;
-        HelpBox meshWarning, materialWarning;
-        VisualElement saveSection, slotPart, fromSlotRow;
+        Button[] newMaskItems;
+        Label meshInfo, paintNote, clothesHint, savedLabel, statusLabel, textureNote;
+        VisualElement meshWarning, materialWarning, textureMessage;
+        VisualElement saveSection, slotPart, fromSlotRow, newMaskPart, paintingSection;
 
         /// <summary>The open window the Scene view panel works with (the last one opened).</summary>
         public static MaskPainterWindow Active { get; private set; }
 
         public bool IsPainting => session != null && session.IsLive;
+        public MaskSession Session => session;
+
+        /// <summary>A click or stroke paints black, and Shift paints white; X swaps them.</summary>
+        public bool PaintsBlack
+        {
+            get => paintsBlack;
+            set
+            {
+                paintsBlack = value;
+                SceneView.RepaintAll();
+            }
+        }
+
+        public void SwapPaint() => PaintsBlack = !paintsBlack;
+
+        /// <summary>
+        /// Hides every other object in the Scene view while painting (Unity's isolation). The tool ends only an isolation
+        /// it started: when unticked, when the painting ends and when the window closes.
+        /// </summary>
+        public bool OnlyThisMesh
+        {
+            get => onlyThisMesh;
+            set
+            {
+                onlyThisMesh = value;
+                Isolate();
+            }
+        }
+
+        void Isolate()
+        {
+            var visibility = SceneVisibilityManager.instance;
+            var renderer = IsPainting ? session.Renderer : null;
+            if (onlyThisMesh && renderer != null && Active == this)
+            {
+                if (isolating && isolatedObject == renderer.gameObject && visibility.IsCurrentStageIsolated()) return;
+                visibility.Isolate(renderer.gameObject, false);
+                isolating = true;
+                isolatedObject = renderer.gameObject;
+            }
+            else EndIsolation();
+        }
+
+        void EndIsolation()
+        {
+            if (!isolating) return;
+            if (SceneVisibilityManager.instance.IsCurrentStageIsolated()) SceneVisibilityManager.instance.ExitIsolation();
+            isolating = false;
+            isolatedObject = null;
+        }
+
+        /// <summary>
+        /// Keeps Only this mesh and the Scene view in step: the creator ended the isolation there (untick to match), or a
+        /// script reload ended it (start it again).
+        /// </summary>
+        void FollowIsolation()
+        {
+            if (isolating && !SceneVisibilityManager.instance.IsCurrentStageIsolated())
+            {
+                isolating = false;
+                isolatedObject = null;
+                onlyThisMesh = false;
+            }
+            else if (onlyThisMesh && !isolating && IsPainting) Isolate();
+        }
+
+        /// <summary>A pen's pressure makes the brush smaller.</summary>
+        public bool PressureSize
+        {
+            get => pressureSize;
+            set => pressureSize = value;
+        }
+
+        /// <summary>A pen's pressure makes a stroke paint or smooth less.</summary>
+        public bool PressureStrength
+        {
+            get => pressureStrength;
+            set => pressureStrength = value;
+        }
+
+        /// <summary>The value a fill or stroke paints now, with or without Shift, and how far it moves (amount).</summary>
+        public float PaintValue(bool shift, out float amount) => StrokeValue(blend, strength, shift != paintsBlack, out amount);
+
+        /// <summary>Takes the painted channel's grey under hit: Replace with that Grey level, painting it without Shift.</summary>
+        public void PickLevel(MaskHit hit)
+        {
+            if (!IsPainting || !session.IsValid(hit)) return;
+            blend = MaskBlend.Replace;
+            strength = session.ValueAt(hit);
+            paintsBlack = false;
+            SceneView.RepaintAll();
+        }
+        public Renderer Target => target;
+
+        /// <summary>Whether the Gradient tool fills every piece instead of only the one where the drag starts.</summary>
+        public bool GradientEveryPiece
+        {
+            get => gradientEveryPiece;
+            set => gradientEveryPiece = value;
+        }
+
+        /// <summary>Fills a gradient from start to end on the model with the paint the settings give (Shift swaps white and black).</summary>
+        public void Gradient(MaskHit start, Vector3 end, bool shift)
+        {
+            if (!IsPainting || !session.IsValid(start)) return;
+            float value = PaintValue(shift, out float amount);
+            session.Mirror = mirror ? MaskSession.MirrorAcross(MaskFind.AvatarRoot(session.Renderer)) : (Matrix4x4?)null;
+            session.FillGradient(start, end, value, amount, gradientEveryPiece);
+            AfterPaint();
+        }
+
+        /// <summary>Where the mouse is on the UV map while it is over the painted part, or null.</summary>
+        public Vector2? HoverUv => IsPainting && hoverValid && session.IsValid(hover) ? session.Mesh.UvAt(hover) : (Vector2?)null;
+        /// <summary>The material slot Put into material fills, or null while none is picked.</summary>
+        public string Slot => slot;
+
+        /// <summary>
+        /// Puts texture in the Texture field and picks the mesh, material and slot that use it. With start, painting
+        /// starts right away when a mesh is known.
+        /// </summary>
+        public void OpenTexture(Texture2D texture, bool start)
+        {
+            if (texture == null) return;
+            startTexture = texture;
+            status = null;
+            textureUnused = !MaskFind.User(texture, target, out var renderer, out int index, out string found);
+            startSlot = textureUnused ? null : found;
+            if (!textureUnused)
+            {
+                target = renderer;
+                materialIndex = index;
+            }
+            Refresh();
+            if (start && MeshProblem() == null) StartPainting();
+        }
         public MaskChannel Channel => session != null ? session.Channel : MaskChannel.All;
         public PaintTool Tool => tool;
 
@@ -96,28 +251,39 @@ namespace DocMe.MaskPainter.Editor
             set => mirror = value;
         }
 
-        /// <summary>What the Scene view shows: 0 the green overlay, 1 the mask only, 2 nothing.</summary>
-        public int ShowMode
+        /// <summary>What the Scene view draws over the model while painting.</summary>
+        public MaskShow View
         {
-            get => showMode;
+            get => shown;
             set
             {
-                showMode = Mathf.Clamp(value, 0, 2);
+                shown = value;
                 SceneView.RepaintAll();
             }
         }
 
-        /// <summary>The value a fill or stroke paints toward, and how far it goes (amount), for the blend, strength and Shift.</summary>
-        public static float StrokeValue(MaskBlend blend, float strength, bool shift, out float amount)
+        /// <summary>How strongly the overlay's colours cover the model, 0 to 1.</summary>
+        public float OverlayStrength
+        {
+            get => overlayStrength;
+            set
+            {
+                overlayStrength = Mathf.Clamp01(value);
+                SceneView.RepaintAll();
+            }
+        }
+
+        /// <summary>The value a fill or stroke paints toward, and how far it goes (amount), for the blend, strength and colour.</summary>
+        public static float StrokeValue(MaskBlend blend, float strength, bool black, out float amount)
         {
             strength = Mathf.Clamp01(strength);
             if (blend == MaskBlend.Replace)
             {
                 amount = 1f;
-                return shift ? 0f : strength;
+                return black ? 0f : strength;
             }
             amount = strength;
-            return shift ? 0f : 1f;
+            return black ? 0f : 1f;
         }
 
         [MenuItem("Tools/DocMe/Mask Painter")]
@@ -125,7 +291,19 @@ namespace DocMe.MaskPainter.Editor
         {
             var window = GetWindow<MaskPainterWindow>();
             window.Show();
+            if (!window.IsPainting && Selection.activeObject is Texture2D texture && EditorUtility.IsPersistent(texture)) window.OpenTexture(texture, false);
         }
+
+        [MenuItem("Assets/DocMe/Paint in Mask Painter", false, 2000)]
+        static void PaintSelectedTexture()
+        {
+            var window = GetWindow<MaskPainterWindow>();
+            window.Show();
+            window.OpenTexture(Selection.activeObject as Texture2D, true);
+        }
+
+        [MenuItem("Assets/DocMe/Paint in Mask Painter", true)]
+        static bool CanPaintSelectedTexture() => Selection.activeObject is Texture2D;
 
         void OnEnable()
         {
@@ -143,7 +321,8 @@ namespace DocMe.MaskPainter.Editor
 
         void OnDisable()
         {
-            if (Active == this) Active = null;
+            if (Active == this) Active = Resources.FindObjectsOfTypeAll<MaskPainterWindow>().FirstOrDefault(w => w != this);
+            MaskShortcuts.Sync();
             SceneView.duringSceneGui -= OnSceneGUI;
             Undo.undoRedoPerformed -= OnUndoRedo;
             ReleaseMouse();
@@ -153,6 +332,8 @@ namespace DocMe.MaskPainter.Editor
             overlay = null;
             SceneView.RepaintAll();
         }
+
+        void OnDestroy() => EndIsolation();
 
         /// <summary>Saves a painting for the quit prompt: into its PNG, or asking where. False when the user cancels.</summary>
         internal static bool SaveForQuit(MaskSession painting)
@@ -228,7 +409,7 @@ namespace DocMe.MaskPainter.Editor
             root.Add(MaskUI.Header(Rebuild));
             root.Add(MaskUI.Note(MaskText.T("intro.text")));
 
-            root.Add(MaskUI.Section(MaskText.T("section.mesh")));
+            var setup = MaskUI.Card(root, MaskText.T("section.mesh"));
             meshField = new ObjectField(MaskText.T("field.mesh")) { objectType = typeof(Renderer), allowSceneObjects = true, tooltip = MaskText.T("field.mesh.tip") };
             meshField.RegisterValueChangedCallback(e =>
             {
@@ -237,7 +418,7 @@ namespace DocMe.MaskPainter.Editor
                 slot = null;
                 Refresh();
             });
-            root.Add(meshField);
+            setup.Add(meshField);
             materialField = new DropdownField(MaskText.T("field.material")) { tooltip = MaskText.T("field.material.tip") };
             materialField.RegisterValueChangedCallback(_ =>
             {
@@ -245,64 +426,79 @@ namespace DocMe.MaskPainter.Editor
                 slot = null;
                 Refresh();
             });
-            root.Add(materialField);
+            setup.Add(materialField);
             uvField = new DropdownField(MaskText.T("field.uv"), UvChoices.ToList(), 0) { tooltip = MaskText.T("field.uv.tip") };
             uvField.RegisterValueChangedCallback(_ =>
             {
                 uvChannel = Mathf.Max(0, uvField.index);
                 Refresh();
             });
-            root.Add(uvField);
-            startField = new DropdownField(MaskText.T("field.start"), StartChoices.ToList(), 0) { tooltip = MaskText.T("field.start.tip") };
-            startField.RegisterValueChangedCallback(_ =>
-            {
-                start = (MaskStart)Mathf.Max(0, startField.index);
-                Refresh();
-            });
-            root.Add(startField);
+            setup.Add(uvField);
+
+            var paintOn = MaskUI.Card(root, MaskText.T("section.texture"));
             textureField = new ObjectField(MaskText.T("field.texture")) { objectType = typeof(Texture2D), allowSceneObjects = false, tooltip = MaskText.T("field.texture.tip") };
+            MaskUI.EmptyHint(textureField, MaskText.T("hint.texture.empty"));
             textureField.RegisterValueChangedCallback(e =>
             {
-                startTexture = e.newValue as Texture2D;
-                Refresh();
+                if (e.newValue is Texture2D picked) OpenTexture(picked, false);
+                else
+                {
+                    startTexture = null;
+                    Refresh();
+                }
             });
-            root.Add(textureField);
+            paintOn.Add(textureField);
             fromSlotButton = MaskUI.Button(MaskText.T("button.fromslot"), MaskText.T("button.fromslot.tip"), PickStartSlot);
             fromSlotRow = MaskUI.Row("", "", MaskUI.Wrap(fromSlotButton));
-            root.Add(fromSlotRow);
+            paintOn.Add(fromSlotRow);
+            textureNote = MaskUI.Note("");
+            textureNote.AddToClassList("docme-indent");
+            paintOn.Add(textureNote);
+            newMaskPart = new VisualElement { name = "docme-mp-newmask" };
+            newMaskPart.Add(MaskUI.Row(MaskText.T("row.newmask"), MaskText.T("row.newmask.tip"), MaskUI.Segments(out newMaskItems,
+                (MaskText.T("start.black"), MaskText.T("start.black.tip"), () => SetNewMask(MaskStart.Black)),
+                (MaskText.T("start.white"), MaskText.T("start.white.tip"), () => SetNewMask(MaskStart.White)))));
             sizeField = new DropdownField(MaskText.T("field.size"), Sizes.Select(s => s + " x " + s).ToList(), 1) { tooltip = MaskText.T("field.size.tip") };
             sizeField.RegisterValueChangedCallback(_ =>
             {
                 size = Sizes[Mathf.Max(0, sizeField.index)];
                 Refresh();
             });
-            root.Add(sizeField);
-            meshWarning = new HelpBox("", HelpBoxMessageType.Warning);
-            root.Add(meshWarning);
+            newMaskPart.Add(sizeField);
+            paintOn.Add(newMaskPart);
+            textureMessage = MaskUI.Message();
+            paintOn.Add(textureMessage);
+            meshWarning = MaskUI.Message();
+            paintOn.Add(meshWarning);
             startButton = MaskUI.Button(MaskText.T("button.start"), MaskText.T("button.start.tip"), StartPainting);
             startButton.AddToClassList("docme-primary");
-            root.Add(startButton);
+            paintOn.Add(startButton);
+
+            paintingSection = new VisualElement();
+            root.Add(paintingSection);
+            var painting = MaskUI.Card(paintingSection, MaskText.T("section.painting"));
             meshInfo = MaskUI.Note("");
-            root.Add(meshInfo);
+            painting.Add(meshInfo);
             paintNote = MaskUI.Note(MaskText.T("hint.panel"));
-            root.Add(paintNote);
+            painting.Add(paintNote);
             clothesHint = MaskUI.Note(MaskText.T("hint.clothes"));
-            root.Add(clothesHint);
+            painting.Add(clothesHint);
+            painting.Add(new MaskUvView(() => this) { tooltip = MaskText.T("uvview.tip") });
 
             saveSection = new VisualElement();
             root.Add(saveSection);
-            saveSection.Add(MaskUI.Section(MaskText.T("section.save")));
+            var saveCard = MaskUI.Card(saveSection, MaskText.T("section.save"));
             savedLabel = MaskUI.Note("");
-            saveSection.Add(savedLabel);
+            saveCard.Add(savedLabel);
             saveButton = MaskUI.Button(MaskText.T("button.save"), MaskText.T("button.save.tip"), () => Save());
             saveAsButton = MaskUI.Button(MaskText.T("button.saveas"), MaskText.T("button.saveas.tip"), () => SaveAs());
-            saveSection.Add(MaskUI.Row(MaskText.T("row.file"), MaskText.T("row.file.tip"), MaskUI.Wrap(saveButton, saveAsButton)));
+            saveCard.Add(MaskUI.Row(MaskText.T("row.file"), MaskText.T("row.file.tip"), MaskUI.Wrap(saveButton, saveAsButton)));
             slotPart = new VisualElement();
-            saveSection.Add(slotPart);
+            saveCard.Add(slotPart);
             slotButton = MaskUI.Button(MaskText.T("button.pickslot"), MaskText.T("button.pickslot.tip"), PickSlot);
             slotButton.AddToClassList("docme-mp-picker");
             slotPart.Add(MaskUI.Row(MaskText.T("row.slot"), MaskText.T("row.slot.tip"), slotButton));
-            materialWarning = new HelpBox("", HelpBoxMessageType.Info);
+            materialWarning = MaskUI.Message();
             slotPart.Add(materialWarning);
             putButton = MaskUI.Button(MaskText.T("button.put"), MaskText.T("button.put.tip"), PutIntoMaterial);
             putButton.AddToClassList("docme-primary");
@@ -323,6 +519,8 @@ namespace DocMe.MaskPainter.Editor
 
         void Refresh()
         {
+            MaskShortcuts.Sync();
+            FollowIsolation();
             if (meshField == null) return;
             // A mesh that was deleted and brought back with Ctrl+Z picks up where it was.
             if (session != null && !session.IsLive && session.Renderer != null) session.Restore();
@@ -338,23 +536,26 @@ namespace DocMe.MaskPainter.Editor
             materialField.SetValueWithoutNotify(materialNames.Count > 0 ? materialNames[materialIndex] : "");
             MaskUI.Show(materialField, materialNames.Count > 0);
             uvField.SetValueWithoutNotify(UvChoices[Mathf.Clamp(uvChannel, 0, 3)]);
-            startField.SetValueWithoutNotify(StartChoices[(int)start]);
             textureField.SetValueWithoutNotify(startTexture);
+            textureField.EnableInClassList("docme-empty", startTexture == null);
             int sizeIndex = Array.IndexOf(Sizes, size);
             sizeField.SetValueWithoutNotify(sizeField.choices[sizeIndex < 0 ? 1 : sizeIndex]);
-            MaskUI.Show(textureField, start == MaskStart.Texture);
-            MaskUI.Show(fromSlotRow, start == MaskStart.Texture && StartMaterial() != null);
-            MaskUI.Show(sizeField, start != MaskStart.Texture);
+            MaskUI.Show(fromSlotRow, StartMaterial() != null);
+            MaskUI.Show(newMaskPart, startTexture == null);
+            MaskUI.Mark(newMaskItems, start == MaskStart.White ? 1 : 0);
+            textureNote.text = startTexture == null ? "" : MaskText.T(MaskFile.CanWriteBack(startTexture) ? "note.texture.writeback" : "note.texture.readonly");
+            MaskUI.Show(textureNote, startTexture != null);
+            MaskUI.SetMessage(textureMessage, startTexture != null && textureUnused ? MaskText.T("note.texture.nouser") : null, HelpBoxMessageType.Info);
 
             var problem = MeshProblem();
-            meshWarning.text = problem ?? "";
-            MaskUI.Show(meshWarning, problem != null);
-            startButton.SetEnabled(problem == null && (start != MaskStart.Texture || startTexture != null));
-            startButton.text = MaskText.T(painting ? "button.startover" : "button.start");
+            MaskUI.SetMessage(meshWarning, problem, HelpBoxMessageType.Warning);
+            startButton.SetEnabled(problem == null);
+            startButton.text = MaskText.T(painting ? "button.startover" : startTexture != null ? "button.paintthis" : "button.start");
+            startButton.tooltip = MaskText.T(startTexture != null ? "button.paintthis.tip" : "button.start.tip");
             meshInfo.text = live ? Describe(session)
                 : gone ? MaskText.T("mesh.gone")
                 : "";
-            MaskUI.Show(meshInfo, live || gone);
+            MaskUI.Show(paintingSection, live || gone);
             MaskUI.Show(paintNote, live);
             MaskUI.Show(clothesHint, live && tool != PaintTool.Off);
 
@@ -391,8 +592,7 @@ namespace DocMe.MaskPainter.Editor
                 note = MaskText.T("note.lockedempty");
             else if (MaskFile.IsLocked(material))
                 note = MaskText.T("note.locked");
-            materialWarning.text = note ?? "";
-            MaskUI.Show(materialWarning, note != null);
+            MaskUI.SetMessage(materialWarning, note, HelpBoxMessageType.Info);
             putButton.SetEnabled(ownFile && slotIndex >= 0);
         }
 
@@ -404,7 +604,7 @@ namespace DocMe.MaskPainter.Editor
             var uvs = new List<Vector2>();
             mesh.GetUVs(uvChannel, uvs);
             if (uvs.Count == 0) return MaskText.T("mesh.nouv", UvChoices[Mathf.Clamp(uvChannel, 0, 3)]);
-            if (start == MaskStart.Texture && startTexture != null && Mathf.Max(startTexture.width, startTexture.height) > MaxStartSize)
+            if (startTexture != null && Mathf.Max(startTexture.width, startTexture.height) > MaxStartSize)
                 return MaskText.T("mesh.toolarge", MaxStartSize);
             return null;
         }
@@ -440,7 +640,7 @@ namespace DocMe.MaskPainter.Editor
         {
             var material = StartMaterial();
             if (material == null) return;
-            new MaskSlotPicker(material, picked =>
+            MaskSlotPicker.Show(fromSlotButton, material, slot, true, picked =>
             {
                 if (this == null) return;
                 var texture = MaskFile.TextureIn(material, picked);
@@ -448,37 +648,23 @@ namespace DocMe.MaskPainter.Editor
                 if (texture != null)
                 {
                     startTexture = texture;
-                    slot = picked;
+                    startSlot = picked;
+                    textureUnused = false;
                 }
                 Refresh();
-            }).Show(fromSlotButton.worldBound);
+            });
         }
 
         void PickSlot()
         {
             var material = CurrentMaterial();
             if (material == null) return;
-            new MaskSlotPicker(material, picked =>
+            MaskSlotPicker.Show(slotButton, material, slot, false, picked =>
             {
                 if (this == null) return;
                 slot = picked;
                 Refresh();
-            }).Show(slotButton.worldBound);
-        }
-
-        /// <summary>
-        /// The avatar the mesh belongs to, whose left and right the mirror runs across: its VRChat avatar descriptor,
-        /// else the topmost Animator above the mesh (a clothing prefab's own Animator sits lower), else its root.
-        /// </summary>
-        static Transform MirrorRoot(Renderer renderer)
-        {
-            Transform topAnimator = null;
-            for (var t = renderer.transform; t != null; t = t.parent)
-            {
-                if (t.GetComponents<Component>().Any(c => c != null && c.GetType().Name == "VRCAvatarDescriptor")) return t;
-                if (t.GetComponent<Animator>() != null) topAnimator = t;
-            }
-            return topAnimator != null ? topAnimator : renderer.transform.root;
+            });
         }
 
         void StartPainting()
@@ -490,16 +676,31 @@ namespace DocMe.MaskPainter.Editor
             ReleaseMouse();
             session?.Dispose();
             hoverValid = false;
-            session = MaskSession.Start(target, uvChannel, materialIndex, size, start, start == MaskStart.Texture ? startTexture : null);
+            var from = startTexture != null ? MaskStart.Texture : start == MaskStart.White ? MaskStart.White : MaskStart.Black;
+            session = MaskSession.Start(target, uvChannel, materialIndex, size, from, startTexture);
+            slot = startTexture != null ? startSlot : null;
             status = session == null ? MaskText.T("mesh.none") : null;
             if (tool == PaintTool.Off) tool = PaintTool.Fill;
+            Isolate();
             Refresh();
             SceneView.RepaintAll();
         }
 
+        void SetNewMask(MaskStart value)
+        {
+            start = value;
+            Refresh();
+        }
+
         public void SetTool(PaintTool value)
         {
+            if (session != null && session.IsStroking)
+            {
+                session.EndStroke();
+                AfterPaint();
+            }
             ReleaseMouse();
+            gradientDragging = false;
             tool = value;
             hoverValid = false;
             Refresh();
@@ -518,6 +719,10 @@ namespace DocMe.MaskPainter.Editor
         public void FillAll(float value) => Whole(m => m.FillAll(value));
 
         public void Invert() => Whole(m => m.Invert());
+
+        public void EvenSeams() => Whole(m => m.EvenSeams());
+
+        public void CopyChannel(MaskChannel from) => Whole(m => m.CopyChannel(from));
 
         void Whole(Action<MaskSession> change)
         {
@@ -539,10 +744,13 @@ namespace DocMe.MaskPainter.Editor
             return SaveTo(session.SavedPath);
         }
 
+        static string FormatKey(TextureImporterFormat format) =>
+            format == TextureImporterFormat.BC4 ? "format.bc4" : format == TextureImporterFormat.BC5 ? "format.bc5" : "format.bc7";
+
         bool SaveTo(string path)
         {
             bool saved = TrySave(session, path, out var error);
-            status = saved ? MaskText.T("status.saved", path) : error;
+            status = saved ? MaskText.T("status.saved", path, MaskText.T(FormatKey(MaskFile.FormatFor(session.Canvas)))) : error;
             Refresh();
             return saved;
         }
@@ -609,7 +817,7 @@ namespace DocMe.MaskPainter.Editor
                 return;
             }
             var e = Event.current;
-            if (showMode != 2 && e.type == EventType.Repaint) DrawOverlay();
+            if (shown != MaskShow.Nothing && e.type == EventType.Repaint) DrawOverlay();
             if (tool == PaintTool.Off || EditorApplication.isPlayingOrWillChangePlaymode)
             {
                 if (session.IsStroking) session.EndStroke();
@@ -640,15 +848,31 @@ namespace DocMe.MaskPainter.Editor
                     if (e.button != 0 || e.alt) break;
                     // Bones may have moved since the last look (an animation preview): read the pose before aiming.
                     session.Rebake(true);
-                    session.Mirror = mirror ? MaskSession.MirrorAcross(MirrorRoot(session.Renderer)) : (Matrix4x4?)null;
+                    session.Mirror = mirror ? MaskSession.MirrorAcross(MaskFind.AvatarRoot(session.Renderer)) : (Matrix4x4?)null;
                     UpdateHover(e);
                     e.Use();
                     if (!hoverValid) break;
-                    float value = StrokeValue(blend, strength, e.shift, out float amount);
+                    if (EditorGUI.actionKey)
+                    {
+                        PickLevel(hover);
+                        break;
+                    }
+                    float value = PaintValue(e.shift, out float amount);
                     if (tool == PaintTool.Fill) session.FillPiece(hover, value, amount);
+                    else if (tool == PaintTool.Gradient)
+                    {
+                        // The gradient is filled when the mouse is let go; until then a line shows it.
+                        gradientStart = hover;
+                        gradientEnd = hover.Point;
+                        gradientDragging = true;
+                        GUIUtility.hotControl = heldControl = id;
+                        break;
+                    }
                     else
                     {
-                        session.BeginStroke(hover, brushCm / 100f, softness, value, amount);
+                        Pressure(e, out float sizeScale, out float strengthScale);
+                        if (tool == PaintTool.Smooth) session.BeginSmooth(hover, brushCm / 100f, softness, strength, sizeScale, strengthScale);
+                        else session.BeginStroke(hover, brushCm / 100f, softness, value, amount, sizeScale, strengthScale);
                         GUIUtility.hotControl = heldControl = id;
                         dragMissed = false;
                     }
@@ -658,9 +882,17 @@ namespace DocMe.MaskPainter.Editor
                 case EventType.MouseDrag:
                     if (GUIUtility.hotControl != id) break;
                     UpdateHover(e);
+                    if (gradientDragging)
+                    {
+                        if (hoverValid) gradientEnd = hover.Point;
+                        e.Use();
+                        view.Repaint();
+                        break;
+                    }
                     if (hoverValid)
                     {
-                        session.ContinueStroke(hover, dragMissed);
+                        Pressure(e, out float sizeScale, out float strengthScale);
+                        session.ContinueStroke(hover, dragMissed, sizeScale, strengthScale);
                         dragMissed = false;
                     }
                     else dragMissed = true;
@@ -671,13 +903,28 @@ namespace DocMe.MaskPainter.Editor
                 case EventType.MouseUp:
                     if (GUIUtility.hotControl != id || e.button != 0) break;
                     ReleaseMouse();
+                    if (gradientDragging)
+                    {
+                        gradientDragging = false;
+                        Gradient(gradientStart, gradientEnd, e.shift);
+                        e.Use();
+                        break;
+                    }
                     session.EndStroke();
                     e.Use();
                     AfterPaint();
                     break;
 
                 case EventType.KeyDown:
-                    if (tool == PaintTool.Brush && (e.keyCode == KeyCode.LeftBracket || e.keyCode == KeyCode.RightBracket))
+                    if (gradientDragging && e.keyCode == KeyCode.Escape)
+                    {
+                        gradientDragging = false;
+                        ReleaseMouse();
+                        e.Use();
+                        view.Repaint();
+                        break;
+                    }
+                    if (UsesBrush(tool) && (e.keyCode == KeyCode.LeftBracket || e.keyCode == KeyCode.RightBracket))
                     {
                         brushCm = Mathf.Clamp(e.keyCode == KeyCode.LeftBracket ? brushCm / 1.25f : brushCm * 1.25f, MinBrushCm, MaxBrushCm);
                         e.Use();
@@ -689,10 +936,27 @@ namespace DocMe.MaskPainter.Editor
                     view.Repaint();
                     break;
 
+                case EventType.ScrollWheel:
+                    if (UsesBrush(tool) && EditorGUI.actionKey && Mathf.Abs(e.delta.y) > 0f)
+                    {
+                        BrushCm = e.delta.y > 0f ? brushCm / 1.15f : brushCm * 1.15f;
+                        e.Use();
+                        view.Repaint();
+                    }
+                    break;
+
                 case EventType.Repaint:
                     DrawCursor(e);
+                    DrawGradient(e);
                     break;
             }
+        }
+
+        void Pressure(Event e, out float sizeScale, out float strengthScale)
+        {
+            float pressure = PressureOf(e.pointerType, e.pressure);
+            sizeScale = pressureSize ? pressure : 1f;
+            strengthScale = pressureStrength ? pressure : 1f;
         }
 
         void UpdateHover(Event e)
@@ -719,8 +983,13 @@ namespace DocMe.MaskPainter.Editor
             session.Rebake(false);
             if (session.PreviewMesh == null) return;
             material.SetTexture("_Mask", session.PreviewTexture);
-            material.SetFloat("_Mode", showMode == 1 ? 1f : 0f);
-            material.SetFloat("_Hover", hoverValid && tool == PaintTool.Fill && session.IsValid(hover) ? session.IslandAt(hover) : -1f);
+            material.SetFloat("_Mode", shown == MaskShow.MaskOnly ? 1f : 0f);
+            material.SetFloat("_Every", shown == MaskShow.EveryChannel ? 1f : 0f);
+            material.SetFloat("_Channel", MaskLook.Offset(session.Channel));
+            material.SetColor("_Tint", MaskLook.Tint(session.Channel));
+            material.SetFloat("_Opacity", overlayStrength);
+            bool picksPiece = tool == PaintTool.Fill || (tool == PaintTool.Gradient && !gradientEveryPiece && !gradientDragging);
+            material.SetFloat("_Hover", hoverValid && picksPiece && session.IsValid(hover) ? session.IslandAt(hover) : -1f);
             for (int pass = 0; pass < 2; pass++)
             {
                 material.SetPass(pass);
@@ -728,12 +997,34 @@ namespace DocMe.MaskPainter.Editor
             }
         }
 
+        /// <summary>The Gradient tool's line from where the drag started to the mouse, and a dot where it would start.</summary>
+        void DrawGradient(Event e)
+        {
+            if (tool != PaintTool.Gradient) return;
+            var colour = e.shift != paintsBlack ? new Color(0.1f, 0.1f, 0.1f, 1f) : MaskLook.Tint(session.Channel);
+            using (new Handles.DrawingScope(colour))
+            {
+                if (gradientDragging && session.IsValid(gradientStart))
+                {
+                    var normal = session.Mesh.NormalAt(gradientStart);
+                    float size = HandleUtility.GetHandleSize(gradientStart.Point) * 0.06f;
+                    Handles.DrawAAPolyLine(3f, gradientStart.Point, gradientEnd);
+                    Handles.DrawWireDisc(gradientStart.Point, normal, size, 2f);
+                    Handles.DrawWireDisc(gradientEnd, normal, size * 0.6f, 2f);
+                }
+                else if (hoverValid && session.IsValid(hover))
+                    Handles.DrawWireDisc(hover.Point, session.Mesh.NormalAt(hover), HandleUtility.GetHandleSize(hover.Point) * 0.04f, 2f);
+            }
+        }
+
         void DrawCursor(Event e)
         {
-            if (!hoverValid || tool != PaintTool.Brush || !session.IsValid(hover)) return;
+            if (!hoverValid || !UsesBrush(tool) || !session.IsValid(hover)) return;
             var normal = session.Mesh.NormalAt(hover);
             float radius = brushCm / 100f;
-            using (new Handles.DrawingScope(e.shift ? new Color(0.1f, 0.1f, 0.1f, 1f) : new Color(0.25f, 0.79f, 0.66f, 1f)))
+            var ring = tool == PaintTool.Smooth ? new Color(0.9f, 0.9f, 0.9f, 1f)
+                : e.shift != paintsBlack ? new Color(0.1f, 0.1f, 0.1f, 1f) : MaskLook.Tint(session.Channel);
+            using (new Handles.DrawingScope(ring))
             {
                 Handles.DrawWireDisc(hover.Point, normal, radius, 2f);
                 if (softness > 0.01f) Handles.DrawWireDisc(hover.Point, normal, radius * (1f - softness));

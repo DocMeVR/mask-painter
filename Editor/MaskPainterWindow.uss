@@ -1,62 +1,135 @@
 /* DocMe theme for UI Toolkit editor views (Unity 2022.3). Copy this file next to a tool's view as <Tool>.uss and add
-   the tool's own rules below the marked line. Values are AvatarDoc's (Packages/dev.docme.avatar-doctor/Editor/UI/
-   AvatarDoctor.uss), with docme- names. A sheet added to a root styles only that root's subtree, so two tools using
-   these class names never affect each other. The C# adds docme-root, and docme-light when !EditorGUIUtility.isProSkin. */
+   the tool's own rules below the marked line. Base: AvatarDoc's values (Packages/dev.docme.avatar-doctor/Editor/UI/
+   AvatarDoctor.uss); text sizes, message rows, checklists and section heads from Skin Touch (Assets/DocMe/SkinTouch/
+   Editor/SkinTouchInspector.uss, 2026-10-28), the newest DocMe view; the search menu from Skin Touch's bone picker
+   (2026-10-29), the switch row from Skin Touch's Pressed by (2026-10-30, joined like a segmented choice). A sheet added to a root styles only that root's
+   subtree, so two tools using these class names never affect each other. The C# adds docme-root, and docme-light when
+   !EditorGUIUtility.isProSkin. */
 
-.docme-root { --docme-accent: #3FC9A8; --docme-accent-fg: #0F1F1A; --docme-warn: #E0A83A; --docme-error: #E5645A; --docme-muted: rgba(255, 255, 255, 0.72); --docme-faint: rgba(255, 255, 255, 0.5); --docme-panel: rgba(255, 255, 255, 0.04); --docme-field: rgba(0, 0, 0, 0.25); --docme-border: rgba(0, 0, 0, 0.35); --docme-selection: rgba(63, 201, 168, 0.16); padding: 4px 0; }
-.docme-root.docme-light { --docme-accent: #128A6E; --docme-accent-fg: #FFFFFF; --docme-warn: #B7791F; --docme-error: #C4463C; --docme-muted: rgba(0, 0, 0, 0.72); --docme-faint: rgba(0, 0, 0, 0.5); --docme-panel: rgba(255, 255, 255, 0.35); --docme-field: rgba(255, 255, 255, 0.55); --docme-border: rgba(0, 0, 0, 0.2); --docme-selection: rgba(18, 138, 110, 0.16); }
+.docme-root { --docme-accent: #3FC9A8; --docme-accent-fg: #0F1F1A; --docme-warn: #E0A83A; --docme-error: #E5645A; --docme-muted: rgba(255, 255, 255, 0.72); --docme-faint: rgba(255, 255, 255, 0.5); --docme-panel: rgba(255, 255, 255, 0.04); --docme-field: rgba(0, 0, 0, 0.25); --docme-border: rgba(0, 0, 0, 0.35); --docme-selection: rgba(63, 201, 168, 0.16); --docme-info-soft: rgba(255, 255, 255, 0.05); --docme-warn-soft: rgba(224, 168, 58, 0.12); --docme-error-soft: rgba(229, 100, 90, 0.13); padding: 4px 0; }
+.docme-root.docme-light { --docme-accent: #128A6E; --docme-accent-fg: #FFFFFF; --docme-warn: #B7791F; --docme-error: #C4463C; --docme-muted: rgba(0, 0, 0, 0.72); --docme-faint: rgba(0, 0, 0, 0.5); --docme-panel: rgba(255, 255, 255, 0.35); --docme-field: rgba(255, 255, 255, 0.55); --docme-border: rgba(0, 0, 0, 0.2); --docme-selection: rgba(18, 138, 110, 0.16); --docme-info-soft: rgba(0, 0, 0, 0.05); --docme-warn-soft: rgba(183, 121, 31, 0.14); --docme-error-soft: rgba(196, 70, 60, 0.13); }
 
 /* Unity's controls stay native (their own colours follow the editor skin); only sizes are set so rows line up. */
-.docme-root .unity-base-field__label { color: var(--docme-muted); font-size: 11px; min-width: 112px; flex-basis: 112px; flex-grow: 0; flex-shrink: 0; }
+.docme-root .unity-base-field__label { color: var(--docme-muted); font-size: 12px; min-width: 112px; flex-basis: 112px; flex-grow: 0; flex-shrink: 0; }
 .docme-root .unity-composite-field__input .unity-base-field__label { min-width: auto; flex-basis: auto; }
 .docme-root .unity-base-field__input, .docme-root .unity-object-field__input { min-height: 20px; }
-.docme-root .unity-base-field { flex-shrink: 1; min-width: 0; }
+.docme-root .unity-base-field { flex-shrink: 1; min-width: 0; margin-left: 0; margin-right: 0; align-items: center; }
 
 /* Header: every view's first row. The tool's name on the left, the language picker at the right end (AvatarDoc's
-   LanguagePicker look: the language's own name and Unity's popup arrow, framed like a field). */
+   LanguagePicker look: the language's own name and Unity's popup arrow, framed like a field). A component inspector
+   leaves the name out (Unity's header above already shows it) and adds docme-header-end. */
 .docme-header { flex-direction: row; align-items: center; min-height: 22px; margin-bottom: 4px; }
-.docme-title { -unity-font-style: bold; font-size: 12px; flex-grow: 1; flex-shrink: 1; margin: 0; }
+.docme-header.docme-header-end { justify-content: flex-end; }
+.docme-title { -unity-font-style: bold; font-size: 13px; flex-grow: 1; flex-shrink: 1; margin: 0; }
 .docme-root .unity-button.docme-language { flex-direction: row; align-items: center; flex-shrink: 0; height: 20px; min-height: 20px; margin: 0 0 0 4px; padding: 0 4px 0 6px; border-width: 1px; border-color: var(--docme-border); border-radius: 3px; }
-.docme-language > Label { font-size: 10.5px; margin: 0 2px 0 0; padding: 0; -unity-text-align: middle-left; }
+.docme-language > Label { font-size: 11.5px; margin: 0 2px 0 0; padding: 0; -unity-text-align: middle-left; }
 
-/* Layout */
-.docme-section { -unity-font-style: bold; font-size: 10px; letter-spacing: 1px; color: var(--docme-muted); margin: 8px 0 4px 0; }
+/* Layout. A section is a head (docme-section-head: the header text, a chip or button at its right end) and the card
+   (docme-panel) under it. */
+.docme-section { -unity-font-style: bold; font-size: 11px; letter-spacing: 1px; color: var(--docme-muted); margin: 8px 0 4px 0; }
+.docme-section-head { flex-direction: row; align-items: center; justify-content: space-between; margin: 8px 0 4px 0; }
+.docme-section-head > .docme-section { margin: 0; }
 .docme-panel { background-color: var(--docme-panel); border-width: 1px; border-color: var(--docme-border); border-radius: 3px; padding: 6px 8px; margin-bottom: 6px; }
 .docme-row { flex-direction: row; align-items: center; min-height: 22px; margin-bottom: 4px; }
-.docme-row > .docme-label { min-width: 112px; flex-basis: 112px; flex-shrink: 0; color: var(--docme-muted); font-size: 11px; }
+.docme-row > .docme-label { min-width: 112px; flex-basis: 112px; flex-shrink: 0; color: var(--docme-muted); font-size: 12px; }
 .docme-row > .docme-grow { flex-grow: 1; flex-shrink: 1; min-width: 0; }
 .docme-row > Button { flex-shrink: 0; margin: 0 0 0 4px; }
 .docme-wrap { flex-direction: row; flex-wrap: wrap; align-items: center; }
-.docme-note { color: var(--docme-muted); font-size: 11px; white-space: normal; margin-bottom: 4px; }
+.docme-note { color: var(--docme-muted); font-size: 12px; white-space: normal; margin-bottom: 4px; }
 .docme-indent { margin-left: 112px; }
+.docme-indented > .unity-base-field__label { padding-left: 8px; }
 .docme-hidden { display: none; }
 
 /* Status text and chips: one base, one modifier per tone */
 .docme-ok { color: var(--docme-accent); -unity-font-style: bold; }
 .docme-warn { color: var(--docme-warn); }
 .docme-error { color: var(--docme-error); -unity-font-style: bold; }
-.docme-chip { height: 16px; padding: 0 4px; margin-left: 4px; font-size: 10px; border-width: 1px; border-radius: 3px; border-color: var(--docme-border); color: var(--docme-muted); -unity-text-align: middle-center; flex-shrink: 0; }
+.docme-chip { height: 18px; padding: 0 4px; margin-left: 4px; font-size: 11px; border-width: 1px; border-radius: 3px; border-color: var(--docme-border); color: var(--docme-muted); -unity-text-align: middle-center; flex-shrink: 0; }
 .docme-chip.docme-ok { color: var(--docme-accent); border-color: var(--docme-accent); -unity-font-style: normal; }
 .docme-chip.docme-warn { border-color: var(--docme-warn); }
 .docme-chip.docme-error { border-color: var(--docme-error); -unity-font-style: normal; }
+.docme-names { margin-bottom: 4px; }
+.docme-names > .docme-chip { margin: 0 4px 4px 0; }
+.docme-link { cursor: link; }
+.docme-link:hover { color: var(--docme-accent); border-color: var(--docme-accent); }
 
-/* Buttons: one primary (accent) per view; segmented choice for 2 to 4 options */
+/* Messages: a flat row on a soft tint of its kind (never a HelpBox inside a card): Unity's console icon, wrapping text,
+   and what belongs to the message (a checklist, a button) inside the body under the text. */
+.docme-message { flex-direction: row; align-items: flex-start; margin: 4px 0 0 0; padding: 5px 6px; border-radius: 3px; }
+.docme-message-first { margin-top: 0; }
+.docme-message-info { background-color: var(--docme-info-soft); }
+.docme-message-warn { background-color: var(--docme-warn-soft); }
+.docme-message-error { background-color: var(--docme-error-soft); }
+.docme-message-icon { width: 14px; height: 14px; flex-shrink: 0; margin: 1px 6px 0 0; }
+.docme-message-body { flex-grow: 1; flex-shrink: 1; }
+.docme-message-text { white-space: normal; margin: 0; padding: 0; font-size: 12px; }
+.docme-message-body > .docme-list { margin: 2px 0 2px 0; }
+.docme-message-body > .docme-button { align-self: flex-start; margin: 2px 0 2px 0; }
+
+/* Checklist: the count as a link-coloured line (no fold-out arrow), the names under it hidden until it or its message
+   is clicked, one row per name, a tick when done (Skin Touch, 2026-10-29) */
+.docme-list { margin: 2px 0 4px 0; }
+.docme-list-title { align-self: flex-start; margin: 0; padding: 0; font-size: 12px; color: var(--docme-accent); cursor: link; }
+.docme-list-title:hover { opacity: 0.8; }
+.docme-list-rows { margin: 2px 0 0 8px; }
+.docme-message-opens { cursor: link; }
+.docme-list-row { flex-direction: row; align-items: center; min-height: 18px; }
+.docme-list-tick { width: 16px; height: 16px; margin-right: 4px; }
+
+/* Buttons: plain actions sit at the start of their line; one primary (accent) per view; segmented choice for 2 to 4 */
+.docme-button { align-self: flex-start; margin-left: 0; margin-top: 4px; }
+.docme-wrap > .docme-button { margin-right: 4px; }
 .docme-root .unity-button.docme-primary { background-color: var(--docme-accent); color: var(--docme-accent-fg); -unity-font-style: bold; border-width: 0; }
 .docme-root .unity-button.docme-primary:hover { opacity: 0.9; }
 .docme-seg { flex-direction: row; height: 20px; border-width: 1px; border-color: var(--docme-border); border-radius: 3px; overflow: hidden; }
-.docme-root .unity-button.docme-seg-item { flex-grow: 1; flex-shrink: 1; min-width: 20px; margin: 0; padding: 2px 8px; border-width: 0; border-radius: 0; font-size: 10.5px; -unity-text-align: middle-center; }
+.docme-root .unity-button.docme-seg-item { flex-grow: 1; flex-shrink: 1; min-width: 20px; margin: 0; padding: 2px 8px; border-width: 0; border-radius: 0; font-size: 11.5px; -unity-text-align: middle-center; }
 .docme-root .unity-button.docme-seg-item.docme-seg-on { background-color: var(--docme-accent); color: var(--docme-accent-fg); -unity-font-style: bold; }
+/* Independent on/off switches side by side (Skin Touch's Pressed by: Hands, Heads, Feet, Custom; 2026-10-30): joined in
+   one box like a docme-seg (the user's pick, 2026-10-30), a thin line between switches, each accent and bold while on.
+   Any number can be on; one choice of 2 to 4 is a docme-seg. The C# marks the last switch docme-switch-last. */
+.docme-switches { flex-direction: row; height: 20px; margin: 2px 0 0 0; border-width: 1px; border-color: var(--docme-border); border-radius: 3px; overflow: hidden; }
+.docme-root .unity-button.docme-switch { flex-grow: 1; flex-shrink: 0; flex-direction: row; align-items: center; justify-content: center; margin: 0; padding: 0 8px; border-width: 0; border-right-width: 1px; border-color: var(--docme-border); border-radius: 0; }
+.docme-root .unity-button.docme-switch.docme-switch-last { border-right-width: 0; }
+.docme-root .unity-button.docme-switch.docme-switch-on { background-color: var(--docme-accent); }
+.docme-switch-label { margin: 0; padding: 0; font-size: 11.5px; -unity-text-align: middle-center; }
+.docme-switch-on .docme-switch-label { color: var(--docme-accent-fg); -unity-font-style: bold; }
+
+/* A name to copy (a parameter, a path): selectable text in a field well, a Copy button beside it */
+.docme-code { background-color: var(--docme-field); border-radius: 3px; padding: 1px 4px; margin: 0 4px 0 0; font-size: 12px; flex-shrink: 1; }
+
+/* An empty object field shows a short hint instead of Unity's "None (Type Name)", which does not fit at 300 px */
+.docme-empty-hint { display: none; flex-grow: 1; margin-left: 2px; padding: 0; -unity-text-align: middle-left; }
+.docme-empty .unity-object-field-display__label { display: none; }
+.docme-empty .docme-empty-hint { display: flex; }
 
 /* Lists: selected row gets the accent bar */
 .docme-root .unity-collection-view__item { border-left-width: 2px; border-left-color: rgba(0, 0, 0, 0); }
 .docme-root .unity-collection-view__item:hover { background-color: var(--docme-field); }
 .docme-root .unity-collection-view__item--selected { background-color: var(--docme-selection); border-left-color: var(--docme-accent); }
 
+/* Search menu (patterns.md 11): added to the root of the window that hosts the control, outside the view's root, so it
+   carries docme-root itself, and Unity's menu colours for its card (AvatarDoc's AdMenu look). */
+.docme-root.docme-menu { position: absolute; left: 0; top: 0; right: 0; bottom: 0; padding: 0; --docme-menu-bg: rgb(56, 56, 56); --docme-menu-line: rgb(25, 25, 25); }
+.docme-root.docme-menu.docme-light { --docme-menu-bg: rgb(203, 203, 203); --docme-menu-line: rgb(153, 153, 153); }
+.docme-menu-card { position: absolute; background-color: var(--docme-menu-bg); border-width: 1px; border-color: var(--docme-menu-line); border-radius: 3px; padding: 4px 0; }
+.docme-menu-search { flex-shrink: 0; height: 22px; margin: 0 6px 4px 6px; }
+.docme-menu-search > .unity-base-field__label { display: none; }
+.docme-menu-search .unity-text-field__input { flex-grow: 1; height: 22px; margin: 0; padding-top: 2px; padding-bottom: 2px; padding-right: 6px; }
+.docme-menu-search-icon { position: absolute; left: 10px; top: 9px; width: 12px; height: 12px; }
+.docme-menu-placeholder { position: absolute; left: 20px; right: 6px; top: 0; bottom: 0; margin: 0; padding: 0; color: var(--docme-faint); font-size: 12px; -unity-text-align: middle-left; }
+.docme-menu-list { flex-shrink: 1; min-height: 22px; }
+.docme-menu-item { flex-direction: row; align-items: center; height: 22px; padding: 2px 8px 2px 6px; border-left-width: 2px; border-left-color: rgba(0, 0, 0, 0); }
+.docme-menu-item.docme-menu-selected { background-color: var(--docme-selection); border-left-color: var(--docme-accent); }
+.docme-menu-check { width: 12px; flex-shrink: 0; margin: 0 6px 0 0; padding: 0; font-size: 11px; -unity-font-style: bold; -unity-text-align: middle-center; color: var(--docme-accent); }
+.docme-menu-label { flex-shrink: 0; margin: 0; padding: 0; font-size: 12px; white-space: nowrap; }
+.docme-menu-disabled > .docme-menu-label { color: var(--docme-faint); }
+.docme-menu-note { flex-grow: 1; flex-shrink: 1; min-width: 0; margin: 0 0 0 6px; padding: 0; font-size: 11px; color: var(--docme-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; -unity-text-align: middle-right; }
+.docme-menu-header { height: 22px; justify-content: flex-end; padding: 4px 8px 2px 8px; }
+.docme-menu-header-text { font-size: 10px; margin: 0; padding: 0; -unity-font-style: bold; letter-spacing: 1px; color: var(--docme-muted); }
+
 /* ---- tool rules below: prefix them with the tool's short name (docme-st-, docme-mp-) ---- */
 .docme-mp-window { padding: 4px 6px 8px 6px; }
 .docme-mp-panel { min-width: 290px; max-width: 340px; padding: 2px 2px 4px 2px; }
-.docme-root .unity-base-field { margin-left: 0; margin-right: 0; }
-.docme-root .unity-help-box { margin: 4px 0; }
 .docme-root .unity-button.docme-mp-button { margin: 0 4px 0 0; flex-shrink: 0; }
 .docme-row > .docme-seg { flex-grow: 1; flex-shrink: 1; min-width: 0; }
 .docme-row > .docme-wrap { flex-grow: 1; flex-shrink: 1; min-width: 0; }
@@ -64,3 +137,17 @@
 .docme-root .unity-button.docme-primary { align-self: flex-start; margin: 4px 0; padding: 2px 10px; }
 .docme-root .unity-button.docme-mp-picker { flex-grow: 1; flex-shrink: 1; margin: 0; -unity-text-align: middle-left; }
 .docme-mp-status { margin-top: 8px; }
+.docme-panel > .docme-message { margin-bottom: 4px; }
+/* Channel swatch beside Paint into: the colours the Scene view overlay and the brush ring use (MaskLook.Tint). */
+.docme-mp-swatch { width: 12px; height: 12px; flex-shrink: 0; margin: 0 4px 0 0; border-radius: 3px; border-width: 1px; border-color: var(--docme-border); align-self: center; }
+.docme-mp-swatch-all { background-color: rgb(64, 201, 168); }
+.docme-mp-swatch-red { background-color: rgb(242, 69, 69); }
+.docme-mp-swatch-green { background-color: rgb(77, 224, 92); }
+.docme-mp-swatch-blue { background-color: rgb(77, 140, 255); }
+.docme-mp-swatch-alpha { background-color: rgb(199, 115, 255); }
+/* Tool choice: the first row of the Scene view panel, full width like a toolbar. */
+.docme-mp-tools { margin-bottom: 6px; }
+.docme-root .docme-mp-tools > .unity-button.docme-seg-item { padding: 2px 4px; }
+/* UV view: the mask as a square picture under the painting notes. */
+.docme-mp-uvview { margin: 4px 0 0 0; border-width: 1px; border-color: var(--docme-border); border-radius: 3px; overflow: hidden; }
+.docme-mp-uvimage { flex-grow: 1; }
