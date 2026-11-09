@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.3.0](https://github.com/DocMeVR/mask-painter/compare/1.2.0...1.3.0) (2026-11-09)
+
+
+### Features
+
+* **channels:** each channel shows in its own colour, with Show Every channel and Copy from ([a93a239](https://github.com/DocMeVR/mask-painter/commit/a93a239dccf91be08ecdae73b52784bc2263aa62))
+* **gradient:** a Gradient tool fades along the model, straight across UV seams ([a93a239](https://github.com/DocMeVR/mask-painter/commit/a93a239dccf91be08ecdae73b52784bc2263aa62))
+* **open:** keep painting a mask you already have, from the Texture field, From the material or a right-click in the Project window ([a93a239](https://github.com/DocMeVR/mask-painter/commit/a93a239dccf91be08ecdae73b52784bc2263aa62))
+* **paint:** shortcuts B, G, S and X, Ctrl+click picks a grey, pen pressure and Only this mesh ([a93a239](https://github.com/DocMeVR/mask-painter/commit/a93a239dccf91be08ecdae73b52784bc2263aa62))
+* **save:** the PC format follows the channels you painted (BC4, BC5 or BC7) ([a93a239](https://github.com/DocMeVR/mask-painter/commit/a93a239dccf91be08ecdae73b52784bc2263aa62))
+* **seams:** UV seams Even out, and the window shows the mask on the UV map ([a93a239](https://github.com/DocMeVR/mask-painter/commit/a93a239dccf91be08ecdae73b52784bc2263aa62))
+* **smooth:** a Smooth tool softens edges and never blurs one piece into another ([a93a239](https://github.com/DocMeVR/mask-painter/commit/a93a239dccf91be08ecdae73b52784bc2263aa62))
+
+
+### Bug Fixes
+
+* **brush:** soft strokes no longer show faint lines between dabs ([a93a239](https://github.com/DocMeVR/mask-painter/commit/a93a239dccf91be08ecdae73b52784bc2263aa62))
+* **panel:** the Strength slider shows its name again ([a93a239](https://github.com/DocMeVR/mask-painter/commit/a93a239dccf91be08ecdae73b52784bc2263aa62))
+
+
+### Performance Improvements
+
+* **brush:** painting a 4096 mask no longer stutters ([a93a239](https://github.com/DocMeVR/mask-painter/commit/a93a239dccf91be08ecdae73b52784bc2263aa62))
+
 ## [1.2.0](https://github.com/DocMeVR/mask-painter/compare/1.1.0...1.2.0) (2026-10-25)
 
 
